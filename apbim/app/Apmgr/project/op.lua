@@ -12,6 +12,7 @@ local os_time_ = os.time
 local print = print
 local ipairs = ipairs
 local os_exit_ = os.exit
+local error = error
 
 local M = {}
 local modname = ...
@@ -64,12 +65,12 @@ local function get_tpl_data()
 	return data
 end
 
-local function pop_dlg_info(data)
+local function pop_dlg_info(data,state)
 	local attributes;
 	local function on_ok(arg)
 		attributes = arg
 	end
-	dlg_info_.pop{data = data,on_ok = on_ok}
+	dlg_info_.pop{data = data,on_ok = on_ok,state = state}
 	return attributes
 end
 
@@ -112,10 +113,8 @@ local function project_turn_zipdata(arg)
 	local saveData = {}
 	local gid = arg.gid
 	if not gid then return end 
-	saveData[gid] = {}
-	saveData[gid].id =gid
 	local gidData = version_.get_gid_data{gid = gid,name = arg.name,info =  arg.info,versions = {}}
-	saveData[gid].str  = disk_.serialize_to_str(gidData) 
+	table.insert(saveData,{id =gid,str  = disk_.serialize_to_str(gidData) })
 	local data =arg.tpl 
 	if type(data) == 'table' and not table_is_empty(data) then
 		local function loop_data(data,id)
@@ -274,30 +273,45 @@ function project_submit()
 	if not id then return end 
 end
 
-function edit_info()
+function edit_info(state)
 	local tree = tree_.get()
 	local id = tree:get_tree_selected()
 	local gid ;
+	local data = tree:get_node_data(id)
 	if tree:get_node_depth(id) == 1 then 
-		gid = project_.project_index_id()
+		gid = disk_.read_project(data.file)
 	else 
-		local data = tree:get_node_data(id)
 		gid =data and data.gid
 	end
 	if not gid then error('data error !') return end 
 	local zipfile = project_.get()
 	local t = disk_.read_zipfile(zipfile,gid)
-	local info = pop_dlg_info(t and t.info) 
+	local info = pop_dlg_info(t and t.info,state) 
 	if not info then return end 
 	t.info = info
 	project_.edit(gid,t)
 end
 
 function delete()
+	local tree = tree_.get()
+	local id = tree:get_tree_selected()
+	local alarm = iup.Alarm('Notice','Whether to delete it !','Yes','No')
+	if alarm ~= 1 then return end 
+	if tree:get_node_depth(id) == 1 then 
+		local data =  tree:get_node_data(id)
+		local zipfile = data.file
+		project_.delete_project(zipfile)
+	else 
+		local data = tree:get_node_data(id)
+		gid =data and data.gid
+	end
+	tree_.delete(id)
 end
 
 function set_style()
+	
 end
 
 function properties()
+	edit_info('read')
 end

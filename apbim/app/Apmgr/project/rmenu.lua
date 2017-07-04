@@ -138,6 +138,8 @@ function get_root()
 	return {
 		item_create_project_;
 		'';
+		item_save_project_;
+		'';
 		item_quit_;
 	}
 end

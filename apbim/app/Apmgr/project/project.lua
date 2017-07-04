@@ -7,6 +7,7 @@ local type = type
 local ipairs = ipairs
 local require  = function (str)  return require(string.lower(str)) end 
 local package_loaded_ = package.loaded
+local os_remove_ = os.remove
 
 
 local M = {}
@@ -30,9 +31,13 @@ end
 
 
 function add_cache_data(id)
-	if not project_cache_[id] then 
+	if not project_cache_.read[id] then 
 		project_cache_.read[id] = disk_.read_zipfile( get(),id)
 	end
+end
+
+local function add_change_data(id,data,state)
+	project_cache_.save[id] = {data = data,state = state}
 end
 
 
@@ -45,7 +50,7 @@ function get()
 end
 
 function get_id_data(id)
-	return project_cache_[id]
+	return project_cache_.save[id] or project_cache_.read[id]
 end
 
 
@@ -75,8 +80,8 @@ end
 
 --pro =file
 function set(file)
+	init()
 	current_project_ = file
-	project_cache_ = {}
 end
 
 
@@ -86,7 +91,10 @@ function init_folder_data(id)
 	return indexId
 end
 
-function project_index_id()
+function project_index_id(zipfile)
+	if zipfile then 
+		return 
+	end
 	return project_cache_.__index
 end
 
@@ -101,7 +109,11 @@ function save()
 end
 
 function edit(gid,data)
-	-- add_cache_data(gid,data)
+	add_change_data(gid,data)
+end
+
+function delete_project(zipfile)
+	os_remove_(zipfile)
 end
 
 

@@ -296,3 +296,8 @@ function close_project(id)
 	tree_:delete_nodes('CHILDREN',id)
 	tree_:set_node_state('COLLAPSED',id)
 end
+
+function delete(id)
+	local id = id or tree_:get_tree_selected()
+	tree_:delete_nodes('SELECTED',id)
+end
