@@ -273,8 +273,8 @@ function open_folder(id)
 	for i = 1,count do 
 		local data = tree_:get_node_data(cur_id)
 		if data and data.gid and string.sub(data.gid,-1,-1) == '0' then 
-			local nextIndexId = project_.get_hid_indexId(data.gid)
-			local t = project_.get_id_data(nextIndexId)
+			local nextIndexId = project_.get_hid_filename(data.gid)
+			local t = project_.get_cache_data(nextIndexId)
 			add_folder_list(t,cur_id)
 		end
 		cur_id = cur_id + 1 + tree_:get_totalchildcount(cur_id)
@@ -287,7 +287,7 @@ function open_folder(id)
 end
 
 function close_project(id)
-	local id = id or get_index_id( project_.get())
+	local id = id or get_index_id( project_.get_project())
 	if not id then return end 
 	local data = tree_:get_node_data(id)
 	if not data then return end 

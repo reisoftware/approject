@@ -18,42 +18,82 @@ _ENV = M
 local lfs_ =require 'lfs'
 local disk_ =  require 'app.Apmgr.disk'
 local project_path_ = 'Projects/'
+local listFile_='__filelist.lua'
 lfs_.mkdir(project_path_)
 local current_project_ ;
 local project_cache_ = {}
 
-function init()
-	current_project_ = nil
+function get_hid_filename(gid)
+	return gid .. '.hid'
+end
+
+local function init_project(zipfile)
+	current_project_ = zipfile
+end
+
+function get_project()
+	return current_project_
+end
+
+local function init_project_gid()
+	project_cache_.gid =  disk_.read_project(get_project())
+end
+
+function get_project_gid()
+	return project_cache_.gid 
+end
+
+local function init_project_filelist()
+	project_cache_.__filelist =  disk_.read_zipfile( get_project(),listFile_) or {}
+end
+
+function set_project_filelist(data)
+	project_cache_.__filelist =  data
+end
+
+function get_project_filelist()
+	return project_cache_.__filelist 
+end
+
+function save_project_filelist(data,zipfile)
+	local str = disk_.serialize_to_str(data or get_project_filelist())
+	local zipfile = zipfile or get_project()
+	disk_.save_to_zipfile(zipfile,listFile_,str)
+end
+
+local function init_project_cache()
 	project_cache_ = {}
 	project_cache_.read = {}
 	project_cache_.save = {}
 end
 
+function init(zipfile)
+	init_project(zipfile)
+	init_project_cache()
+	init_project_gid()
+	init_project_filelist()
+end
 
-function add_cache_data(id)
+
+
+function add_read_data(id)
 	if not project_cache_.read[id] then 
-		project_cache_.read[id] = disk_.read_zipfile( get(),id)
+		project_cache_.read[id] = disk_.read_zipfile( get_project(),id)
 	end
 end
 
 local function add_change_data(id,data,state)
+	if not project_cache_.save[id]  then 
+		project_cache_.save.num = project_cache_.save.num + 1
+	end
 	project_cache_.save[id] = {data = data,state = state}
+	
 end
 
 
-function get_hid_indexId(gid)
-	return gid .. '.hid'
+function get_cache_data(id)
+	return  project_cache_.read[id]
 end
-
-function get()
-	return current_project_
-end
-
-function get_id_data(id)
-	return project_cache_.save[id] or project_cache_.read[id]
-end
-
-
 
 function get_project_path()
 	return project_path_
@@ -78,34 +118,14 @@ function get_project_list()
 	return get_projectlist()
 end
 
---pro =file
-function set(file)
-	init()
-	current_project_ = file
-end
-
-
 function init_folder_data(id)
-	local indexId = get_hid_indexId(id)
-	add_cache_data(indexId)
+	local indexId = get_hid_filename(id)
+	add_read_data(indexId)
 	return indexId
 end
 
-function project_index_id(zipfile)
-	if zipfile then 
-		return 
-	end
-	return project_cache_.__index
-end
-
-
-function open()
-	local zipfile = get()
-	project_cache_.__index =  disk_.read_project(zipfile)
-	-- init_folder_data(projectid)
-end
-
 function save()
+	-- save_project_filelist()
 end
 
 function edit(gid,data)

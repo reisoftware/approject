@@ -47,8 +47,8 @@ function serialize_to_str(data,key,t)
 			serialize_to_str(v,str,t)
 		elseif type(v) == 'string' then 	
 			table.insert(t, str .. ' = \'' .. v .. '\';\n')
-		elseif type(v) == 'number' and type(v) == 'boolean' then 
-			table.insert(t,str .. ' = ' .. v .. ';\n')
+		elseif type(v) == 'number' or type(v) == 'boolean' then 
+			table.insert(t,str .. ' = ' .. tostring(v).. ';\n')
 		end
 	end
 	if not key  then 
@@ -92,9 +92,7 @@ function zip_index(zip)
 	return zip_file_data(zip,'__index.lua')
 end
 
-function create_project(zipfile,gid)
-	zip_.create(zipfile,'db = {};\ndb[\'gid\'] = \'' .. gid .. '\';\n')
-end
+
 
 function save_to_zipfile(zipfile,id,str)
 	if type(str) ~= 'string' then return end 
@@ -103,6 +101,10 @@ function save_to_zipfile(zipfile,id,str)
 	local ar,close = zip_.open(zipfile)
 	zip_.add(ar,file,'string',str)
 	close()
+end
+
+function create_project(zipfile,gid)
+	zip_.create(zipfile,'db = {};\ndb[\'gid\'] = \'' .. gid .. '\';\n')
 end
 
 local function read_string_from_file(file)

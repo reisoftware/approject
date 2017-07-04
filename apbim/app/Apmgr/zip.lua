@@ -80,3 +80,6 @@ function create(zipfile,str)
 	add(ar,'Files/__index.lua','string',str)
 	close();
 end
+
+
+

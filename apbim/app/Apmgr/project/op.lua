@@ -111,10 +111,12 @@ end
 
 local function project_turn_zipdata(arg)
 	local saveData = {}
+	local filelist = {}
 	local gid = arg.gid
 	if not gid then return end 
 	local gidData = version_.get_gid_data{gid = gid,name = arg.name,info =  arg.info,versions = {}}
 	table.insert(saveData,{id =gid,str  = disk_.serialize_to_str(gidData) })
+	filelist[gid] = true
 	local data =arg.tpl 
 	if type(data) == 'table' and not table_is_empty(data) then
 		local function loop_data(data,id)
@@ -129,18 +131,23 @@ local function project_turn_zipdata(arg)
 					else 
 						gid = gid .. '1'
 						if attr.disklink then 
-							table.insert(saveData,{str = disk_.read_file(attr.disklink,'string'),id =  project_.get_hid_indexId(gid)})
+							local tempid = project_.get_hid_filename(gid)
+							table.insert(saveData,{str = disk_.read_file(attr.disklink,'string'),id =  tempid})
+							filelist[tempid] = true
 						end
 					end
 					table.insert(saveData,{str =disk_.serialize_to_str( version_.get_gid_data{gid = gid,name = attr.name,info =  attr.info,versions = {}} ) ,id =  gid})
+					filelist[gid] = true
 					table.insert(folderIndexData,version_.get_folder_data{name = attr.name,gid = gid})
 				end
 			end
-			table.insert(saveData,{str =disk_.serialize_to_str( folderIndexData ),id =   project_.get_hid_indexId(id)})
+			local tempid = project_.get_hid_filename(id)
+			table.insert(saveData,{str =disk_.serialize_to_str( folderIndexData ),id =  tempid })
+			filelist[tempid] = true
 		end
 		loop_data(data,gid)
 	end
-	return saveData
+	return saveData,filelist
 end
 
 
@@ -153,7 +160,8 @@ function project_new()
 	local zipfile =  path.. filename
 	disk_.create_project(zipfile,gid)
 	local posid = tree_.add_project{name =  project_info.name,file = zipfile}
-	local data = project_turn_zipdata{gid = gid,name = project_info.name,tpl = tpldata,info = attributes}
+	local data,filelist = project_turn_zipdata{gid = gid,name = project_info.name,tpl = tpldata,info = attributes}
+	project_.save_project_filelist(filelist,zipfile)
 	save_project_files{zipfile = zipfile,data = data}
 	if project_info.open then 
 		tree_.set_marked(posid)
@@ -161,7 +169,7 @@ function project_new()
 	end
 end
 
-function open_folder(id)
+local function is_go_on(id)
 	local tree = tree_.get()
 	local tid =id or  tree_.get_id()
 	if not tid then return end 
@@ -169,30 +177,31 @@ function open_folder(id)
 	if not data or data.opened then return end
 	data.opened = true
 	tree:set_node_data(data,tid)
-	local gid = data.gid or project_.project_index_id()
-	if not gid then return end 
-	if string.sub(gid,-1,-1) == '1' then return end 
-	local nextIndexId = project_.get_hid_indexId(gid)
-	project_.add_cache_data(nextIndexId)
-	local data = project_.get_id_data(nextIndexId)
+	return data,tid
+end
+
+function open_folder(id)
+	local data,tid = is_go_on(id)
+	if not data then return end 
+	local gid = data.gid or project_.get_project_gid()
+	local nextIndexId = project_.get_hid_filename(gid)
+	project_.add_read_data(nextIndexId)
+	local data = project_.get_cache_data(nextIndexId)
 	for k,v in ipairs(data) do 
 		if v.gid and string.sub(v.gid,-1,-1) == '0' then 
-			local nextIndexId = project_.get_hid_indexId(v.gid)
-			project_.add_cache_data(nextIndexId)
+			local nextIndexId = project_.get_hid_filename(v.gid)
+			project_.add_read_data(nextIndexId)
 		end
 	end
 	tree_.open_folder(tid)
 end
 
 local function open(data,id)
-	project_.set(data.file)
-	project_.open()
-	local gid = project_.project_index_id()
-	if not gid then return end 
-	local nextIndexId = project_.get_hid_indexId(gid)
-	if not nextIndexId then return end 
-	project_.add_cache_data(nextIndexId)
-	local data = project_.get_id_data(nextIndexId)
+	project_.init(data.file)
+	local gid = project_.get_project_gid()
+	local hid = project_.get_hid_filename(gid)
+	project_.add_read_data(hid)
+	local data = project_.get_cache_data(hid)
 	if data then 
 		tree_.add_folder_list(data,id)
 		open_folder(id)
@@ -204,8 +213,7 @@ project_open = function ()
 	local id =tree:get_tree_selected()
 	if not id then return end 
 	local data = tree:get_node_data(id)
-	if type(data) ~= 'table' or not data.file  then return end 
-	local pro = project_.get()
+	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
 		if not project_close('Open') then return end 
 	end 
@@ -216,15 +224,16 @@ end
 
 local function save(id)
 	local function waiting_init(tree,arg)
-		local count =tree:get_totalchildcount(id)
-		count = count + 1
-		if type(arg.waiting_guage) == 'function' then
-			arg.waiting_guage(count)
-		end
-		local curid = id
-		for i = 1,count do 
+		-- local count =tree:get_totalchildcount(id)
+		-- count = count + 1
+		-- if type(arg.waiting_guage) == 'function' then
+			-- arg.waiting_guage(count)
+		-- end
+		-- local curid = id
+		-- for i = 1,count do 
 			
-		end
+		-- end
+		local data = project_.get_project_filelist()
 	end
 
 	local function init(arg)
@@ -236,7 +245,7 @@ local function save(id)
 end
 
 local function get_project_id()
-	local zipfile = project_.get()
+	local zipfile = project_.get_project()
 	if not zipfile then return end
 	local id = tree_.get_index_id(zipfile)
 	return id
@@ -247,9 +256,6 @@ project_save = function (f)
 	if not id then return end 
 	save(id)
 	-- project_.save()
-end
-
-function project_delete()
 end
 
 function project_close(str)
@@ -284,7 +290,7 @@ function edit_info(state)
 		gid =data and data.gid
 	end
 	if not gid then error('data error !') return end 
-	local zipfile = project_.get()
+	local zipfile = project_.get_project()
 	local t = disk_.read_zipfile(zipfile,gid)
 	local info = pop_dlg_info(t and t.info,state) 
 	if not info then return end 
