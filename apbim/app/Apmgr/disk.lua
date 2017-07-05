@@ -97,15 +97,36 @@ function zip_index(zip)
 	return zip_file_data(zip,'__index.lua')
 end
 
+function zipfile_save_index(zipfile,str)
+	save_to_zipfile(zipfile,'__index.lua',str)
+end
 
+function zipfile_open(zipfile)
+	return zip_.open(zipfile)
+end
 
-function save_to_zipfile(zipfile,id,str)
+function save_to_zipfile(zipfile,id,str,ar)
 	if type(str) ~= 'string' then return end 
 	if not zipfile or not id then return end 
 	local file = 'Files/' .. id
-	local ar,close = zip_.open(zipfile)
+	local ar,close = ar;
+	if not ar then 
+		ar,close =  zip_.open(zipfile)
+	end
 	zip_.add(ar,file,'string',str)
-	close()
+	if close then 
+		close()
+	end
+end
+
+function zipfile_remove_file(zipfile,id,ar)
+	if not zipfile or not id then return end 
+	local file = 'Files/' .. id
+	local ar,close = ar or zip_.open(zipfile)
+	if close then 
+		zip_.delete(ar,file)
+		close()
+	end
 end
 
 function create_project(zipfile,gid)
@@ -150,9 +171,11 @@ function read_zipfile(zipfile,id)
 	return zip_file_data(zipfile,id)
 end
 
-function read_project(zipfile)
+function read_project(zipfile,key)
 	local t = zip_index(zipfile)
-	return t and t.gid
+	if t then 
+		return key and t[key] or t.gid
+	end
 end
 
 

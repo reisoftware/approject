@@ -17,7 +17,7 @@ local modname = ...
 _G[modname] = M
 package_loaded_[modname] = M
 _ENV = M
-
+-- require 'iup_dev'
 local iup = require 'iuplua'
 require 'iupluacontrols'
 require "iupluaimglib"
@@ -38,7 +38,7 @@ local lan;
 local btn_wid = '100x';
 local btn_cancel_ = iup.button{title = 'Close',rastersize = btn_wid};
 local lab_wid = '70x'
-local gauge_ = iup.gauge{expand = 'HORIZONTAL',rastersize = 'x30'};
+local gauge_ = iup.gauge{expand = 'HORIZONTAL',rastersize = '500x20'};
 local matrix_info_ = iup.matrix{
 	numcol = 2;
 	numlin = 20;
@@ -66,8 +66,8 @@ local frame_info_ = iup.frame{
 local dlg_ = iup.dialog{
 	iup.vbox{
 		gauge_;
-		matrix_info_;
-		iup.hbox{btn_cancel_};
+		-- matrix_info_;
+		-- iup.hbox{btn_cancel_};
 		alignment = 'ARIGHT';
 		margin = '10x10';
 	};
@@ -160,8 +160,8 @@ local function clear_matrix()
 	matrix_num_ = 0
 end
 
-local function waiting_guage(max)
-	gauge_.TEXT  = language_package_.checking[lan]
+local function init_guage(max)
+	-- gauge_.TEXT  = language_package_.checking[lan]
 	gauge_.MAX = max
 	gauge_.min = 0
 end
@@ -169,25 +169,12 @@ end
 local function guage_up()
 	local val = tonumber(gauge_.value) +1
 	gauge_.value =val
-	if val >= tonumber(gauge_.MAX )  then
-		dlg_:hide()
-	end
 end
 
 local function init_data(arg)
 	arg = arg or {}
-	clear_matrix()
-	if type(arg.init) then 
-		arg.init{
-			waiting_guage = waiting_guage;
-		}
-	end 
-	-- init_guage('checking',)
-	matrix_add_line{key = v.key,value = v.value}
-	matrix_info_.redraw = 'all'
+	init_guage(arg.totalnums)
 end
-
-
 
 function pop(arg)
 	arg = arg or {}
@@ -197,7 +184,22 @@ function pop(arg)
 		dlg_:map()
 		init_data(arg)
 	end
+	local function stop()
+		dlg_:hide()
+	end
 
 	init()
 	dlg_:popup()
+	arg.run(guage_up,stop)
 end
+
+
+-- local function run()
+	-- for i =1,1000 do 
+		-- for b = 1,1000 do 
+			-- print()
+		-- end
+		-- guage_up()
+	-- end
+-- end
+-- pop{run = run,totalnums =1000}

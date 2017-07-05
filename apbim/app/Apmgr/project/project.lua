@@ -32,6 +32,8 @@ local function init_project(zipfile)
 	project_cache_ = {}
 	project_cache_.read = {}
 	project_cache_.save = {}
+	project_cache_.__filelist = {}
+	project_cache_.gid = nil
 end
 
 function get_project()
@@ -60,20 +62,36 @@ function get_project_filelist()
 	return project_cache_.__filelist 
 end
 
-function save_project_filelist(data,zipfile)
-	local str = disk_.serialize_to_str(data or get_project_filelist())
+function save_project_filelist(zipfile,data)
+	local str = disk_.serialize_to_str( data )
 	local zipfile = zipfile or get_project()
 	disk_.save_to_zipfile(zipfile,listFile_,str)
 end
 
-local function init_project_cache()
-	
+local function init_project_style()
+	project_cache_.style =  disk_.read_project(zipfile,'style')
+end
+
+function get_project_style()
+	return project_cache_.style
+end
+
+function set_project_style(style)
+	project_cache_.style  = style
+end
+
+function save_project_style(zipfile,style)
+	local zipfile = zipfile or get_project()
+	local t = disk_.zip_index(zipfile)
+	t.style = style or get_project_style()
+	disk_.save_to_zipfile(zipfile,listFile_,disk_.serialize_to_str(t))
 end
 
 function init(zipfile)
 	init_project(zipfile)
 	init_project_gid()
 	init_project_filelist()
+	init_project_style()
 end
 
 
@@ -120,6 +138,10 @@ function init_folder_data(id)
 	local indexId = get_hid_filename(id)
 	add_read_data(indexId)
 	return indexId
+end
+
+function close()
+	init()
 end
 
 function save()

@@ -50,7 +50,7 @@ function init()
 	tree_=  iupTree_.Class:new()
 	tree_:set_rastersize('300x') 
 	-- tree_:set_dlbtn(db_click)
-	tree_:set_branchopen(branch_open)
+	-- tree_:set_branchopen(branch_open)
 end
 
 function get()
@@ -96,7 +96,6 @@ local function tree_project_attributes(arg)
 			rmenu = require 'app.Apmgr.project.rmenu'.get_project;
 			file = arg.file;
 			gid = arg.gid;
-			data = arg.data;
 		};
 		image = {
 			open ='app/Apmgr/res/Project.bmp',
@@ -117,9 +116,6 @@ local function tree_branch_attributes(arg)
 		data= {
 			rmenu = require 'app.Apmgr.project.rmenu'.get_folder;
 			gid = arg.gid;
-			hid = arg.hid;
-			opened = arg.opened;
-			data = arg.data;
 		};
 		kind = 'branch';
 	}
@@ -131,9 +127,7 @@ local function tree_leaf_attributes(arg)
 		data= {
 			rmenu = require 'app.Apmgr.project.rmenu'.get_file;
 			gid = arg.gid;
-			hid = arg.hid;
 			file = arg.file;
-			data = arg.data;
 		};
 		kind = 'leaf';
 	}
@@ -320,6 +314,7 @@ function close_project(id)
 	tree_:set_node_data(data,id)
 	tree_:delete_nodes('CHILDREN',id)
 	tree_:set_node_state('COLLAPSED',id)
+	print('tree close_project')
 end
 
 function delete(id)

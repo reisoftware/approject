@@ -52,10 +52,14 @@ local function get_tpl_data()
 	local t = disk_.get_folder_contents(path)
 	local data = {}
 	for k,v in pairs(t) do 
-		local name = string.sub(k,1,-5)
-		local str = require_path ..  name
-		local t = require_data_file(str)
-		table.insert(data,t)
+		if string.find(k,'.lua') then 
+			local name = string.sub(k,1,-5)
+			local str = require_path ..  name
+			local t = require_data_file(str)
+			if type(t) == 'table' then 
+				table.insert(data,t)
+			end
+		end
 	end
 	table.sort(data,
 		function (a,b)
@@ -105,11 +109,16 @@ local function save_project_files(arg)
 	if type(arg) ~= 'table' then return end 
 	local zipfile = arg.zipfile
 	local data = arg.data
+	local ar = disk_.zipfile_open(zipfile)
+	local filelist = {}
 	for k,v in ipairs (data) do 
 		if  v.id  and v.str then 
-			disk_.save_to_zipfile(zipfile, v.id,v.str )
+			disk_.save_to_zipfile(zipfile, v.id,v.str ,ar)
+			filelist[filelist] = true
 		end
 	end	
+	ar:close()
+	project_.save_project_filelist(zipfile, filelist)
 end
 
 local function project_turn_zipdata(arg)
@@ -117,7 +126,7 @@ local function project_turn_zipdata(arg)
 	local filelist = {}
 	local gid = arg.gid
 	if not gid then return end 
-	local gidData = version_.get_gid_data{gid = gid,name = arg.name,info =  arg.info,versions = {}}
+	local gidData = version_.get_gid_data{gid = gid,name = arg.name,info =  arg.info}
 	table.insert(saveData,{id =gid,str  = disk_.serialize_to_str(gidData) })
 	filelist[gid] = true
 	local data =arg.tpl 
@@ -164,8 +173,8 @@ function project_new()
 	disk_.create_project(zipfile,gid)
 	local posid = tree_.add_project{name =  project_info.name,file = zipfile}
 	local data,filelist = project_turn_zipdata{gid = gid,name = project_info.name,tpl = tpldata,info = attributes}
-	project_.save_project_filelist(filelist,zipfile)
 	save_project_files{zipfile = zipfile,data = data}
+	project_.save_project_filelist(zipfile,filelist)
 	if project_info.open then 
 		project_open(posid)
 	end
@@ -201,14 +210,47 @@ end
 local function open(data,id)
 	tree_.set_marked(id)
 	project_.init(data.file)
+	local tree = tree_.get()
+	local filelist = project_.get_project_filelist() or {}
+	local nums = 0
+	for k,v in pairs(filelist) do 
+		nums = nums + 1
+	end
+	
+	
 	local gid = project_.get_project_gid()
 	local hid = project_.get_hid_filename(gid)
-	project_.add_read_data(hid)
-	local data = project_.get_cache_data(hid)
-	if data then 
-		tree_.add_folder_list(data,id)
-		open_folder(id)
+	local zipfile = project_.get_project()
+	local data = disk_.read_zipfile(zipfile,hid)
+	
+	local tempt = tree:get_node_data(id)
+	tempt.gid = gid
+	tree:set_node_data(tempt,id)
+	
+	local function run(f,stop)
+		-- f();f();
+		local function loop(data,id)
+			for k,v in ipairs(data) do 
+				if v.gid and string.sub(v.gid,-1,-1) == '0' then 
+					local newid = tree_.add_branch(v,id)
+					local hid = project_.get_hid_filename(v.gid)
+					local t = disk_.read_zipfile(zipfile,hid)
+					-- f();f();
+					loop(t,newid)
+				elseif v.gid and string.sub(v.gid,-1,-1) == '1' then 
+					tree_.add_leaf(v,id)
+					-- f();f();
+				end
+			end
+		end
+		loop(data,id)
+		-- stop()
+		local tree = tree_.get()
+		tree:set_node_state('EXPANDED',id)
+		
 	end
+	-- dlg_save_.pop{run = run,totalnums =nums}
+	run()
 end
 
 project_open = function (id)
@@ -223,26 +265,84 @@ project_open = function (id)
 	open(data,id)
 end
 
-local function save(id)
-	local function waiting_init(tree,arg)
-		local count =tree:get_totalchildcount(id)
-		count = count + 1
-		if type(arg.waiting_guage) == 'function' then
-			arg.waiting_guage(count)
-		end
-		local curid = id
-		for i = 1,count do 
-			
-		end
-		local data = project_.get_project_filelist()
-	end
 
-	local function init(arg)
-		arg = arg  or {}
-		local tree =  tree_.get()
-		waiting_init(tree,arg)
+
+local function save(id)
+	local tree = tree_.get()
+	local count =tree:get_totalchildcount(id)
+	count = count + 1
+	local zipfile = project_.get_project()
+	local filelist = project_.get_project_filelist() or {}
+	local newlist = {}
+	local function run(f,stop)
+		local curid = id
+		local ar,close = disk_.zipfile_open(zipfile)
+		
+		local function deal_save_id(curid)
+			local data = tree:get_node_data(curid)
+			-- require 'sys.table'.totrace(data,curid)
+			if data.gidChanged then 
+				disk_.save_to_zipfile(zipfile, data.gid,  disk_.serialize_to_str(data.gidData),ar)
+			end
+			filelist[data.gid] = nil
+			newlist[data.gid] = true
+			-- f()
+			if data.hidChanged then
+				local str;
+				if type(data.hidData) == 'function' then 
+					str = data.hidData()
+				elseif type(data.hidData) == 'table' then 
+					str = disk_.serialize_to_str(data.hidData)
+				elseif type(data.hidData) == 'string' then 
+					str = data.hidData
+				end
+				local id = project_.get_hid_filename(data.gid)
+				disk_.save_to_zipfile(zipfile, id,  str,ar)
+			end
+			filelist[id] = nil
+			newlist[id] = true
+			-- f()
+		end
+		deal_save_id(curid)
+		
+		local function loop(id)
+			local count = tree:get_childcount(id)
+			local curid = id+1
+			for i = 1,count do 
+				deal_save_id(curid)
+				if tree:get_node_kind(curid) == 'BRANCH' then
+					loop(curid)
+				end
+				curid = curid + 1 + tree:get_totalchildcount(curid)
+			end
+		end
+		loop(curid)
+		if close then close() end
+		-- stop()
 	end
-	dlg_save_.pop{init = init}
+	run()
+	-- dlg_save_.pop{run = run,totalnums = count*2,stop_cbf = stop_cbf }
+	project_.save_project_filelist(zipfile, newlist)
+	if not table_is_empty(filelist) then 
+		local nums = 0
+		for k,v in pairs(filelist) do 
+			nums = nums + 1
+		end
+		
+		local function run(f,stop)
+			local ar,close = disk_.zipfile_open(zipfile)
+			for k,v in pairs(filelist) do 
+				disk_.zipfile_remove_file(zipfile,k,ar)
+				-- f()
+			end
+			if close then close() end
+			-- stop()
+		end
+		-- dlg_save_.pop{run = run,totalnums =nums}
+		run()
+	end
+	project_.close()
+	
 end
 
 local function get_project_id()
@@ -253,15 +353,12 @@ local function get_project_id()
 end
 
 project_save = function (f)
-	-- print('project_save')
-	-- local id = get_project_id()
-	-- if not id then return end 
-	-- save(id)
-	-- project_.save()
+	local id = get_project_id()
+	if not id then return end 
+	save(id)
 end
 
 function project_close(str)
-	print('project_close')
 	if str and str == 'Open' then 
 		local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
 		if a  ~= 1 then return  end 
@@ -273,7 +370,6 @@ function project_close(str)
 end
 
 function quit()
-	-- pqrint('quit')
 	project_close(str)
 	os_exit_()
 end
@@ -294,13 +390,31 @@ function edit_info(readonly)
 	else 
 		gid =data and data.gid
 	end
-	if not gid then error('data error !') return end 
+	if not gid then return end 
 	local zipfile = project_.get_project()
-	local t = disk_.read_zipfile(zipfile,gid)
+	local t =data.gidData  or  disk_.read_zipfile(zipfile,gid) or {}
 	local info = pop_dlg_info(t and t.info,readonly) 
 	if not info then return end 
 	t.info = info
-	project_.edit(gid,t)
+	data.gidData = t
+	data.gidChanged = true
+	tree:set_node_data(data,id)
+end
+
+local function get_folder_hid_data(id)
+	local tree = tree_.get()
+	local count = tree:get_childcount(id)
+	if count == 0 then return {} end 
+	local curid = id + 1
+	local data = {}
+	for i =1,count do 
+		local name = tree:get_node_title(curid)
+		local gid = tree: get_node_data(curid).gid
+		local t = {name = name,gid =gid }
+		table.insert(data,t)
+		curid = curid + 1+tree:get_totalchildcount(curid)
+	end
+	return data
 end
 
 function delete()
@@ -312,11 +426,17 @@ function delete()
 		local data =  tree:get_node_data(id)
 		local zipfile = data.file
 		project_.delete_project(zipfile)
+		return 
 	else 
 		local data = tree:get_node_data(id)
 		gid =data and data.gid
 	end
 	tree_.delete(id)
+	local pid = tree:get_node_parent(id)
+	local data =  tree:get_node_data(pid)
+	data.hidChanged = true
+	data.hidData = get_folder_hid_data(pid)
+	tree:set_node_data(data)
 end
 
 function set_style()
@@ -329,7 +449,7 @@ end
 
 local function add_folder(arg)
 	local gid = luaext_.guid() .. '0' 
-	local t = {name = arg.name,gid = gid,opened = arg.opened,data = arg.data}
+	local t = {name = arg.name,gid = gid,data = arg.data}
 	local id;
 	if not arg.state then 
 		id = tree_.add_folder(t,arg.id)
@@ -349,6 +469,38 @@ local function add_file(arg)
 	end
 end
 
+local function init_folder_data(name)
+	local gid = luaext_.guid() .. '0' 
+	local data = version_.get_gid_data{gid = gid,name = name}
+	return data
+end
+
+local function init_file_data(name,file)
+	local gid = luaext_.guid() .. '1' 
+	local data = version_.get_gid_data{gid = gid,name = name,file = file}
+	return data
+end
+
+local function set_folder_data(str,id)
+	local tree = tree_.get()
+	local id = id or tree_.get_id()
+	
+	local data = init_folder_data(str)
+	local newid = tree_.add_folder({name = data.name,gid = data.gid},id)
+	local t = tree:get_node_data(newid)
+	t.gidChanged = true
+	t.gidData = data
+	t.hidChanged = true
+	t.hidData = {}
+	tree:set_node_data(t,newid)
+	
+	local t = tree:get_node_data(id)
+	t.hidData = true 
+	t.hidData = get_folder_hid_data(id)
+	tree:set_node_data(t,id)
+	return newid
+end
+
 function create_folder()
 	local tree = tree_.get()
 	local id = tree_.get_id()
@@ -359,12 +511,36 @@ function create_folder()
 			return true
 		end
 	end
-	
-	local function set_data(str)
-		add_folder{name = str,opened = true} 
-	end
 
-	dlg_add_.pop{Warning = Warning,set_data = set_data}
+	dlg_add_.pop{Warning = Warning,set_data = set_folder_data}
+end
+
+local function set_file_data(data,id)
+	-- add_file{name = str} 
+	local tree = tree_.get()
+	local id = id or tree_.get_id()
+	local str,file;
+	if type(data) == 'string' then 
+		str = data
+	elseif type(data) == 'table' then  
+		str,file = data.name,data.file
+	end
+	local data = init_file_data(str,file)
+	local newid = tree_.add_file({name = data.name,gid = data.gid,file = file},id)
+	local t = tree:get_node_data(newid)
+	t.gidChanged = true
+	t.gidData = data
+	if file then 
+		t.hidChanged = true
+		t.hidData = function() return disk_.read_file(file,'string') end 
+	end
+	tree:set_node_data(t,newid)
+	
+	local t = tree:get_node_data(id)
+	t.hidData = true 
+	t.hidData = get_folder_hid_data(id)
+	
+	tree:set_node_data(t,id)
 end
 
 function create_file()
@@ -377,25 +553,59 @@ function create_file()
 			return true
 		end
 	end
-	
-	local function set_data(str)
-		add_file{name = str} 
-	end
-
-	dlg_add_.pop{Warning = Warning,set_data = set_data}
+	dlg_add_.pop{Warning = Warning,set_data = set_file_data}
 	
 end
 
 local function deal_import_data(data,id)
-	local curid = id 
-	for k,v in ipairs(data) do 
-		if #v ~= 0  then 
-			curid = add_folder{name = v.name,state = k ~= 1 and true,id = id,opened = true}
-			deal_import_data(v[1],curid)
-		else
-			add_file{name= v.name,file = v.file,state = k ~= 1 and true,id = id}
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local function loop_data(data,id,state)
+		local folderhidtab = {}
+		for k,v in ipairs (data) do 
+			if #v ~=0 then 
+				local tab = init_folder_data(v.name)
+				local newid;
+				if state then 
+					newid = tree_.add_branch({name = tab.name,gid = tab.gid},id)
+				else 
+					newid = tree_.add_folder({name = tab.name,gid = tab.gid},id)
+				end
+				local t = tree:get_node_data(newid)
+				t.gidChanged = true
+				t.gidData = tab
+				t.hidChanged = true
+				t.hidData = {}
+				local hidtab = loop_data(v[1],newid,true)
+				if hidtab then 
+					t.hidData = hidtab
+				end
+				tree:set_node_data(t,newid)
+				table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
+			else 
+				local tab = init_file_data(v.name,v.file)
+				local newid;
+				if state then
+					newid = tree_.add_leaf({name = tab.name,gid = tab.gid,file = v.file},id)
+				else
+					newid = tree_.add_file({name = tab.name,gid = tab.gid,file = v.file},id)
+				end
+				local t = tree:get_node_data(newid)
+				t.gidChanged = true
+				t.gidData = tab
+				t.hidChanged = true
+				t.hidData = function() return disk_.read_file(v.file,'string') end 
+				tree:set_node_data(t,newid)
+				table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
+			end
 		end
+		return folderhidtab
 	end
+	local t = tree:get_node_data(id)
+	t.hidChanged = true
+	-- t.hidData = loop_data(data,id)
+	t.hidData = get_folder_hid_data(id)
+	tree:set_node_data(t,id)
 end
 
 function import_folder()
@@ -403,9 +613,9 @@ function import_folder()
 	filedlg:popup()
 	local value = filedlg.value
 	if not value then return end 
+	print(value)
 	local t = disk_.import_folder(value,true)
-	local id = tree_.get_id()
-	deal_import_data(t,id)
+	deal_import_data(t)
 end
 
 function import_file()
@@ -432,7 +642,7 @@ function import_file()
 	if #files== 0 then return end 
 	for i=#files,1,-1 do 
 		local t = files[i]
-		add_file(t)
+		set_file_data(t,id)
 	end
 end
 
@@ -449,6 +659,11 @@ function rename()
 	
 	local function set_data(str)
 		tree:set_node_title(str,id)
+		
+		local t = tree:get_node_data(id)
+		t.hidChanged = true
+		t.hidData = get_folder_hid_data(id)
+		tree:set_node_data(t,id)
 	end
 
 	dlg_add_.pop{Warning = Warning,set_data = set_data,name = tree:get_node_title(id)}
@@ -473,6 +688,11 @@ function link_to_file()
 	local tree = tree_.get()
 	local data = tree:get_node_data()
 	data.file = string.gsub(val,'\\','/')
+	data.gidChanged = true
+	local name = tree:get_node_title()
+	local zipfile = project_.get_project()
+	data.gidData = data.gidData or disk_.read_zipfile(zipfile,data.gid)  or init_file_data(name,data.file) or {}
+	data.gidData.file = data.file
 	tree:set_node_data(data)
 end
 
@@ -534,6 +754,55 @@ local function deal_import_template(data,id)
 			end
 		end
 	end
+	
+	
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local function loop_data(data,id)
+		local folderhidtab = {}
+		for k,v in ipairs (data) do 
+			local attr = v.attributes 
+			if attr then 
+				if #v ~=0 then 
+					local tab = init_folder_data(attr.name)
+					local newid = tree_.add_branch({name = tab.name,gid = tab.gid},id)
+					local t = tree:get_node_data(newid)
+					t.gidChanged = true
+					for k,v in pairs (attr) do 
+						tab[k] = v
+					end
+					t.gidData = tab
+					t.hidChanged = true
+					t.hidData = {}
+					local hidtab = loop_data(v[1],newid)
+					if hidtab then 
+						t.hidData = hidtab
+					end
+					tree:set_node_data(t,newid)
+					table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
+				else 
+					local tab = init_file_data(attr.name,attr.file)
+					local newid = tree_.add_leaf({name = tab.name,gid = tab.gid,file = v.file},id)
+					local t = tree:get_node_data(newid)
+					t.gidChanged = true
+					for k,v in pairs (attr) do 
+						tab[k] = v
+					end
+					t.gidData = tab
+					t.hidChanged = true
+					t.hidData = function() return disk_.read_file(v.file,'string') end 
+					tree:set_node_data(t,newid)
+					table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
+				end
+			end
+		end
+		return folderhidtab
+	end
+	local t = tree:get_node_data(id)
+	t.hidChanged = true
+	t.hidData = loop_data(data,id)
+	tree:set_node_data(t,id)
+	
 	tree_.set_marked(id)
 end
 
