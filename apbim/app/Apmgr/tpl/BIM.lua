@@ -15,7 +15,7 @@ return {
 					attributes = {name = '3D';};
 				};
 				{
-					attributes = {name = 'Views';};
+					attributes = {name = 'ÊÓÍ¼';};
 					{
 						{
 							attributes = {name = '×óÊÓÍ¼';};

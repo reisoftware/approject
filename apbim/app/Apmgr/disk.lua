@@ -62,6 +62,10 @@ function save_file(file,data)
 	code_.save{key = 'db',file = file,data = data}
 end
 
+function save_require_file(file,data)
+	require'sys.table'.tofile{file=file,src=data};
+end
+
 function delete_file(file)
 	os_remove_(file)
 end

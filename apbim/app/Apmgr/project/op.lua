@@ -24,6 +24,7 @@ _ENV = M
 local iup = require 'iuplua'
 
 local function require_data_file(file)
+	file = string.lower(file)
 	package_loaded_[file] = nil
 	return require (file)
 end
@@ -252,7 +253,7 @@ local function get_project_id()
 end
 
 project_save = function (f)
-	print('project_save')
+	-- print('project_save')
 	-- local id = get_project_id()
 	-- if not id then return end 
 	-- save(id)
@@ -261,20 +262,20 @@ end
 
 function project_close(str)
 	print('project_close')
-	-- if str and str == 'Open' then 
-		-- local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
-		-- if a  ~= 1 then return  end 
-	-- end
-	-- project_save()
-	-- tree_.close_project()
-	-- project_.init()
-	-- return true
+	if str and str == 'Open' then 
+		local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
+		if a  ~= 1 then return  end 
+	end
+	project_save()
+	tree_.close_project()
+	project_.init()
+	return true
 end
 
 function quit()
-	print('quit')
-	-- project_close(str)
-	-- os_exit_()
+	-- pqrint('quit')
+	project_close(str)
+	os_exit_()
 end
 
 function project_submit()	
@@ -328,7 +329,7 @@ end
 
 local function add_folder(arg)
 	local gid = luaext_.guid() .. '0' 
-	local t = {name = arg.name,gid = gid,opened = arg.opened}
+	local t = {name = arg.name,gid = gid,opened = arg.opened,data = arg.data}
 	local id;
 	if not arg.state then 
 		id = tree_.add_folder(t,arg.id)
@@ -340,7 +341,7 @@ end
 
 local function add_file(arg)
 	local gid = luaext_.guid() .. '1' 
-	local t = {name =arg.name,gid = gid,file =arg.file}
+	local t = {name =arg.name,gid = gid,file =arg.file,data = arg.data}
 	if not arg.state then 
 		tree_.add_file(t,arg.id)
 	else 
@@ -481,19 +482,59 @@ end
 
 
 function save_project_template()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'SAVE',DIRECTORY = 'app/apmgr/tpl/',EXTFILTER  = 'LUA files|*.lua|'}
+	filedlg:popup()
+	local file = filedlg.value
+	if not file then return end 
+	
+	local data = {}
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	
+	local function get_folder_data(data,id)
+		local count = tree:get_childcount(id)
+		if count == 0 then return end 
+		local data = data or {}
+		local curid = id+1
+		for i = 1,count  do 
+			local title = tree:get_node_title(curid)
+			local t = {attributes = {}}
+			local tempt = t.attributes
+			tempt.name = title
+			if  tree:get_node_kind(curid) == 'BRANCH' then 
+				t[1] = {}
+				get_folder_data(t[1] ,curid)
+			end
+			table.insert(data,t)
+			curid = curid + 1+ tree:get_totalchildcount(curid)
+		end
+	end
+	
+	get_folder_data(data,id)
+	local t = {}
+	t.structure = data
+	if not string.find(file,'.lua') then 
+		file = file .. '.lua'
+	end
+	disk_.save_require_file(file,t)
+	
 end
 
 
 local function deal_import_template(data,id)
 	local curid = id 
 	for k,v in ipairs(data) do 
-		if #v ~= 0  then 
-			curid = add_folder{name = v.name,state = k ~= 1 and true,id = id,opened = true}
-			deal_import_data(v[1],curid)
-		else
-			add_file{name= v.name,file = v.file,state = k ~= 1 and true,id = id}
+		local t = v.attributes 
+		if t then 
+			if #v ~= 0  then 
+				curid = add_folder{name = t.name,state = k ~= 1 and true,id = id,opened = true,data = t}
+				deal_import_template(v[1],curid)
+			else
+				add_file{name= t.name,file = t.file,state = k ~= 1 and true,id = id,data = t}
+			end
 		end
 	end
+	tree_.set_marked(id)
 end
 
 function import_template()
@@ -504,7 +545,7 @@ function import_template()
 	local tree = tree_.get()
 	local count = tree:get_childcount()
 	if count and count ~= 0 then 
-		local alarm = iup.Alarm('Notice','Whether to clear the project files !','Yes','No')
+		local alarm = iup.Alarm('Notice','The old files will be deleted in saving after importing template , whether to go on !','Yes','No')
 		if alarm == 1 then 
 			tree:delete_nodes('CHILDREN')
 		end

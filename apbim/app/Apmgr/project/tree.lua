@@ -96,6 +96,7 @@ local function tree_project_attributes(arg)
 			rmenu = require 'app.Apmgr.project.rmenu'.get_project;
 			file = arg.file;
 			gid = arg.gid;
+			data = arg.data;
 		};
 		image = {
 			open ='app/Apmgr/res/Project.bmp',
@@ -117,7 +118,8 @@ local function tree_branch_attributes(arg)
 			rmenu = require 'app.Apmgr.project.rmenu'.get_folder;
 			gid = arg.gid;
 			hid = arg.hid;
-			opened = arg.opened
+			opened = arg.opened;
+			data = arg.data;
 		};
 		kind = 'branch';
 	}
@@ -130,7 +132,8 @@ local function tree_leaf_attributes(arg)
 			rmenu = require 'app.Apmgr.project.rmenu'.get_file;
 			gid = arg.gid;
 			hid = arg.hid;
-			file = arg.file
+			file = arg.file;
+			data = arg.data;
 		};
 		kind = 'leaf';
 	}
