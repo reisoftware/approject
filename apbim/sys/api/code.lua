@@ -91,3 +91,45 @@ function save(arg)
 	if not arg.file or not arg.data then return end 
 	save_table(arg.file,arg.data,arg.key,arg.returnKey)
 end
+
+
+local function serialize_to_str(data,key,t)
+	local t = t or {};
+	local curkey = key or 'db'
+	
+	local tempt = {}
+	for k,v in pairs(data) do 
+		if type(k) == 'number' or type(k) == 'string'  then 
+			table.insert(tempt,k)
+		end
+	end
+	table.sort(tempt,function(a,b) return tostring(a) < tostring(b) end )
+	
+	for k,key in ipairs (tempt) do 
+		if type(key) == 'number' then 
+			str = curkey .. '[' .. key .. ']'
+		elseif type(key) == 'string' then 
+			str = curkey .. '[\'' .. key .. '\']'
+		end
+		local v =data[key]
+		if type(v) == 'table' then 
+			table.insert(t,str .. ' = {};\n')
+			serialize_to_str(v,str,t)
+		elseif type(v) == 'string' then 	
+			table.insert(t, str .. ' = \'' .. v .. '\';\n')
+		elseif type(v) == 'number' or type(v) == 'boolean' then 
+			table.insert(t,str .. ' = ' .. tostring(v).. ';\n')
+		end
+	end
+	if not key  then 
+		table.insert(t,1,curkey .. ' = {};\n')
+		return table.concat(t,'')
+	end
+end
+
+--arg = {key,data}
+function serialize(arg)
+	if type(arg) ~= 'table' then return end 
+	if not arg.data then return end 
+	return serialize_to_str(arg.data,arg.key)
+end
