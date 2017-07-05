@@ -15,27 +15,26 @@ local iup = require 'iuplua'
 
 local language_package_ = {
 	support_ = {English = 'English',Chinese = 'Chinese'};
-	dlg = {English = 'Add',Chinese = '添加'};
+	dlg = {English = 'Title Setting',Chinese = '标题设置'};
 	ok = {English = 'Ok',Chinese = '确认'};
 	cancel = {English = 'Cancel',Chinese = '取消'};
 	name = {English = 'Name : ',Chinese = '名称 ： '};
 }
 
 local btn_wid = '80x'
-local lab_wid = "50x"
 local btn_ok_ = iup.button{title = "Ok",rastersize = btn_wid,  };
 local btn_cancel_ = iup.button{title = "Close",rastersize = btn_wid};
-local lab_name_ = iup.label{title = "Name : ",rastersize = lab_wid,};
-local txt_name_ = iup.text{rastersize = "300x",expand ="HORIZONTAL"};
+local lab_name_ = iup.label{title = "Name : ",};
+local txt_name_ = iup.text{rastersize = "400x",expand ="HORIZONTAL"};
 
 local dlg_ = iup.dialog{
 	iup.vbox{
 		iup.hbox{lab_name_,txt_name_};
 		iup.hbox{btn_ok_,btn_cancel_};
 		alignment = "ARIGHT";
-		margin = "10x10"
+		margin = "5x5"
 	};
-	title = arg and arg.DlgName or "Add";
+	title = arg and arg.DlgName or "Title";
 	resize = "NO";
 }
 iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
@@ -61,10 +60,11 @@ function pop(arg)
 				iup.SetFocus(txt_name_)
 				return 
 			end 
+			dlg_:hide()
 			if arg and  type(arg.set_data) == 'function' then 
 				arg.set_data(txt_name_.value)
 			end 
-			dlg_:hide()
+			
 		end
 		function btn_cancel_:action()
 			dlg_:hide()
@@ -73,12 +73,14 @@ function pop(arg)
 	end 
 
 	local function init_data()
-		txt_name_.value = ""
+		txt_name_.value = arg.name or ''
+		iup.SetFocus(txt_name_)
 	end
 
 	local function init()
 		init_title()
 		init_callback()
+		dlg_:map()
 		init_data()
 	end 
 	init()

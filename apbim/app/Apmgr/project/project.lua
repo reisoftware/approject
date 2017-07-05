@@ -29,6 +29,9 @@ end
 
 local function init_project(zipfile)
 	current_project_ = zipfile
+	project_cache_ = {}
+	project_cache_.read = {}
+	project_cache_.save = {}
 end
 
 function get_project()
@@ -36,7 +39,8 @@ function get_project()
 end
 
 local function init_project_gid()
-	project_cache_.gid =  disk_.read_project(get_project())
+	local zipfile = get_project()
+	project_cache_.gid =  disk_.read_project(zipfile)
 end
 
 function get_project_gid()
@@ -44,7 +48,8 @@ function get_project_gid()
 end
 
 local function init_project_filelist()
-	project_cache_.__filelist =  disk_.read_zipfile( get_project(),listFile_) or {}
+	local zipfile = get_project()
+	project_cache_.__filelist =  disk_.read_zipfile( zipfile,listFile_) or {}
 end
 
 function set_project_filelist(data)
@@ -62,14 +67,11 @@ function save_project_filelist(data,zipfile)
 end
 
 local function init_project_cache()
-	project_cache_ = {}
-	project_cache_.read = {}
-	project_cache_.save = {}
+	
 end
 
 function init(zipfile)
 	init_project(zipfile)
-	init_project_cache()
 	init_project_gid()
 	init_project_filelist()
 end
@@ -83,11 +85,7 @@ function add_read_data(id)
 end
 
 local function add_change_data(id,data,state)
-	if not project_cache_.save[id]  then 
-		project_cache_.save.num = project_cache_.save.num + 1
-	end
 	project_cache_.save[id] = {data = data,state = state}
-	
 end
 
 

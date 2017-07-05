@@ -13,6 +13,7 @@ local print = print
 local ipairs = ipairs
 local os_exit_ = os.exit
 local error = error
+local os_execute_ = os.execute
 
 local M = {}
 local modname = ...
@@ -33,6 +34,7 @@ local disk_ =  require 'app.Apmgr.disk'
 local dlg_create_project_ =  require 'app.apmgr.dlg.dlg_create_project'
 local dlg_info_ = require 'app.apmgr.dlg.dlg_info'
 local dlg_save_ = require 'app.apmgr.dlg.dlg_save'
+local dlg_add_ = require 'app.apmgr.dlg.dlg_add'
 local tree_ =  require 'app.apmgr.project.tree'
 local version_ = require 'app.Apmgr.version'
 local temp_path_ = 'app/apmgr/temp/'
@@ -164,19 +166,16 @@ function project_new()
 	project_.save_project_filelist(filelist,zipfile)
 	save_project_files{zipfile = zipfile,data = data}
 	if project_info.open then 
-		tree_.set_marked(posid)
-		project_open()
+		project_open(posid)
 	end
 end
 
 local function is_go_on(id)
 	local tree = tree_.get()
 	local tid =id or  tree_.get_id()
-	if not tid then return end 
+	if not tid or tid == 0 then return end 
 	local data = tree:get_node_data(tid)
 	if not data or data.opened then return end
-	data.opened = true
-	tree:set_node_data(data,tid)
 	return data,tid
 end
 
@@ -185,8 +184,10 @@ function open_folder(id)
 	if not data then return end 
 	local gid = data.gid or project_.get_project_gid()
 	local nextIndexId = project_.get_hid_filename(gid)
+	if not nextIndexId then return end 
 	project_.add_read_data(nextIndexId)
 	local data = project_.get_cache_data(nextIndexId)
+	if not data then return end 
 	for k,v in ipairs(data) do 
 		if v.gid and string.sub(v.gid,-1,-1) == '0' then 
 			local nextIndexId = project_.get_hid_filename(v.gid)
@@ -197,6 +198,7 @@ function open_folder(id)
 end
 
 local function open(data,id)
+	tree_.set_marked(id)
 	project_.init(data.file)
 	local gid = project_.get_project_gid()
 	local hid = project_.get_hid_filename(gid)
@@ -208,31 +210,29 @@ local function open(data,id)
 	end
 end
 
-project_open = function ()
+project_open = function (id)
 	local tree = tree_.get()
-	local id =tree:get_tree_selected()
-	if not id then return end 
+	local id =  id or tree:get_tree_selected()
+	if not id  then return end 
 	local data = tree:get_node_data(id)
 	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
 		if not project_close('Open') then return end 
 	end 
 	open(data,id)
-	data.opened = true
-	tree:set_node_data(data,id)
 end
 
 local function save(id)
 	local function waiting_init(tree,arg)
-		-- local count =tree:get_totalchildcount(id)
-		-- count = count + 1
-		-- if type(arg.waiting_guage) == 'function' then
-			-- arg.waiting_guage(count)
-		-- end
-		-- local curid = id
-		-- for i = 1,count do 
+		local count =tree:get_totalchildcount(id)
+		count = count + 1
+		if type(arg.waiting_guage) == 'function' then
+			arg.waiting_guage(count)
+		end
+		local curid = id
+		for i = 1,count do 
 			
-		-- end
+		end
 		local data = project_.get_project_filelist()
 	end
 
@@ -252,31 +252,35 @@ local function get_project_id()
 end
 
 project_save = function (f)
-	local id = get_project_id()
-	if not id then return end 
-	save(id)
+	print('project_save')
+	-- local id = get_project_id()
+	-- if not id then return end 
+	-- save(id)
 	-- project_.save()
 end
 
 function project_close(str)
-	if str and str == 'Open' then 
-		local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
-		if a  ~= 1 then return  end 
-	end
-	project_save()
-	tree_.close_project()
-	project_.init()
-	return true
+	print('project_close')
+	-- if str and str == 'Open' then 
+		-- local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
+		-- if a  ~= 1 then return  end 
+	-- end
+	-- project_save()
+	-- tree_.close_project()
+	-- project_.init()
+	-- return true
 end
 
 function quit()
-	project_close(str)
-	os_exit_()
+	print('quit')
+	-- project_close(str)
+	-- os_exit_()
 end
 
-function project_submit()
-	local id = get_project_id()
-	if not id then return end 
+function project_submit()	
+	print('project_submit')
+	-- local id = get_project_id()
+	-- if not id then return end 
 end
 
 function edit_info(state)
@@ -320,4 +324,157 @@ end
 
 function properties()
 	edit_info('read')
+end
+
+local function add_folder(arg)
+	local gid = luaext_.guid() .. '0' 
+	local t = {name = arg.name,gid = gid,opened = arg.opened}
+	local id;
+	if not arg.state then 
+		id = tree_.add_folder(t,arg.id)
+	else 
+		id = tree_.add_branch(t,arg.id)
+	end
+	return id
+end
+
+local function add_file(arg)
+	local gid = luaext_.guid() .. '1' 
+	local t = {name =arg.name,gid = gid,file =arg.file}
+	if not arg.state then 
+		tree_.add_file(t,arg.id)
+	else 
+		tree_.add_leaf(t,arg.id)
+	end
+end
+
+function create_folder()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local data = tree:get_child_titles(id)
+	local function Warning(str)
+		if data[str] then 
+			iup.Message('Notice','The name already exist ! Please reset it !')
+			return true
+		end
+	end
+	
+	local function set_data(str)
+		add_folder{name = str,opened = true} 
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data}
+end
+
+function create_file()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local data = tree:get_child_titles(id)
+	local function Warning(str)
+		if data[str] then 
+			iup.Message('Notice','The name already exist ! Please reset it !')
+			return true
+		end
+	end
+	
+	local function set_data(str)
+		add_file{name = str} 
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data}
+	
+end
+
+local function deal_import_data(data,id)
+	local curid = id 
+	for k,v in ipairs(data) do 
+		if #v ~= 0  then 
+			curid = add_folder{name = v.name,state = k ~= 1 and true,id = id,opened = true}
+			deal_import_data(v[1],curid)
+		else
+			add_file{name= v.name,file = v.file,state = k ~= 1 and true,id = id}
+		end
+	end
+end
+
+function import_folder()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'DIR'}
+	filedlg:popup()
+	local value = filedlg.value
+	if not value then return end 
+	local t = disk_.import_folder(value,true)
+	local id = tree_.get_id()
+	deal_import_data(t,id)
+end
+
+function import_file()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN',MULTIPLEFILES = 'yes'}
+	filedlg:popup()
+	local count = filedlg.MULTIVALUECOUNT
+	local files = {}
+	if count then 
+		local path;
+		for i = 1,count do 
+			if i == 1 then 
+				path =  filedlg['MULTIVALUE' .. (i -1)]
+				path = string.sub(path,-1,-1) == '\\' and path or (path .. '\\')
+			else 
+				local filename = filedlg['MULTIVALUE' .. (i -1)]
+				table.insert(files,{file = path ..  filename,name =filename })
+			end
+		end
+	else 
+		local value  = filedlg.value
+		if not value then return end 
+		table.insert(files,{file = value,name =string.match(value,'.+\\([^\\]+)') })
+	end 
+	if #files== 0 then return end 
+	for i=#files,1,-1 do 
+		local t = files[i]
+		add_file(t)
+	end
+end
+
+function rename()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local data = tree:get_child_titles(id)
+	local function Warning(str)
+		if data[str] then 
+			iup.Message('Notice','The name already exist ! Please reset it !')
+			return true
+		end
+	end
+	
+	local function set_data(str)
+		tree:set_node_title(str,id)
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data,name = tree:get_node_title(id)}
+end
+
+function open_file()
+	local tree = tree_.get()
+	local data = tree:get_node_data()
+	if data and data.file then 
+		if disk_.file_is_exist(data.file) then 
+			local file = string.gsub(data.file,'/','\\')
+			os_execute_("start  \"\" " .. "\"" .. file .. "\"")
+		end
+	end
+end
+
+function link_to_file()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN'}
+	filedlg:popup()
+	local val = filedlg.value
+	if not val then return end
+	local tree = tree_.get()
+	local data = tree:get_node_data()
+	data.file = string.gsub(val,'\\','/')
+	tree:set_node_data(data)
+end
+
+function link_to_model()
+	
 end

@@ -186,6 +186,9 @@
 			Class:turn_data(src)
 			--将family原始数据处理，并返回tree类需要的数据格式。
 			--src 表结构的数据。
+			---------------------------2017年7月5日-------------------------------------			
+			Class:get_child_titles(id)
+			--获得指定文件夹节点内 子一级所有节点的title
 ]]
 
 local require = require
@@ -1315,4 +1318,28 @@ function Class:get_child_last_id(id)
 			return curid
 		end
 	end
+end
+----------------------------------2017-06-27 10:02:28----------------------
+--[[
+Class:get_child_titles(id)
+功能：
+	获得指定文件夹节点内 所有子节点的title
+返回值：
+	{} or {title1 = true , title2 = true}
+使用示例：
+	local tree = require '...'.Class:new(t)
+	local data = tree:get_child_titles(id)
+--]]
+function Class:get_child_titles(id)
+	local id = id or self:get_tree_selected()
+	local count = self:get_childcount(id)
+	local t = {}
+	if not count or count == 0 then return t  end 
+	local curid = id + 1
+	for i = 1,count do 
+		local title = self:get_node_title(curid)
+		t[title] = true
+		curid = curid + 1+ self:get_totalchildcount(curid)
+	end
+	return t
 end

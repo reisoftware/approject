@@ -42,6 +42,8 @@ local title_model_ = {English = 'Model',Chinese = '模型'}
 local title_view_ = {English = 'View',Chinese = '视图'}
 local title_submit_ = {English = 'Submit',Chinese = '提交'}
 local title_load_ = {English = 'Loading',Chinese = '加载'}
+local title_create_folder_ = {English = 'Create Folder',Chinese = '创建文件夹'}
+local title_import_folder_ = {English = 'Import Folder',Chinese = '导入文件夹'}
 
 local item_create_project_ = {}
 local item_quit_ = {}
@@ -63,12 +65,14 @@ local item_link_to_ = {};
 local item_link_to_file_ = {};
 local item_link_to_folder_ = {};
 local item_link_to_exe_ = {};
-local item_link_to_member_ = {};
+local item_link_to_model_ = {};
 local item_link_to_view_ = {};
 local item_rename_ = {};
 local item_edit_ = {};
 local item_submit_project_ = {}
 local item_open_ = {};
+local item_project_create_folder_ = {}
+local item_project_import_folder_ = {}
 
 local function sub_import_items()
 	return {
@@ -87,13 +91,13 @@ item_create_ = {submenu = sub_add_items}
 
 local function sub_link_to_items()
 	return {
-		item_link_to_folder_;
+		-- item_link_to_folder_;
 		item_link_to_file_;
 		'';
-		item_link_to_member_;
-		item_link_to_view_;
-		'';
-		item_link_to_exe_;
+		item_link_to_model_;
+		-- item_link_to_view_;
+		-- '';
+		-- item_link_to_exe_;
 	}
 end
 item_link_to_ = {submenu = sub_link_to_items}
@@ -124,13 +128,15 @@ local function init()
 	item_link_to_file_.title = title_file_[cur_language_]
 	item_link_to_folder_.title = title_folder_[cur_language_]
 	item_link_to_exe_.title = title_link_to_exe_[cur_language_]
-	item_link_to_member_.title = title_model_[cur_language_]
+	item_link_to_model_.title = title_model_[cur_language_]
 	item_link_to_view_.title = title_view_[cur_language_]
 	item_create_.title = title_create_[cur_language_]
 	item_create_folder_.title = title_folder_[cur_language_];
 	item_create_file_.title = title_file_[cur_language_];
 	item_submit_project_.title = title_submit_[cur_language_];
 	item_open_.title = title_open_[cur_language_];
+	item_project_create_folder_.title = title_create_folder_[cur_language_];
+	item_project_import_folder_.title = title_import_folder_[cur_language_];
 end
 
 function get_root()
@@ -144,11 +150,14 @@ end
 
 function get_project()
 	init()
+	
+	-- init_project_satus
 	return {
 		item_open_project_;
-		'';
 		item_save_project_;
-		-- item_submit_project_;
+		'';
+		item_project_create_folder_;
+		item_project_import_folder_;
 		'';
 		item_edit_project_;
 		item_delete_project_;
@@ -163,8 +172,8 @@ end
 function get_folder()
 	init()
 	return {
-		item_open_;
-		'';
+		-- item_open_;
+		-- '';
 		item_create_;
 		item_import_;
 		'';
@@ -193,12 +202,32 @@ end
 --------------------------------------------------------------------------------------------
 --action function
 item_quit_.action = op_.quit;
-item_create_project_.action = op_.project_new;
-item_open_project_.action = op_.project_open;
-item_save_project_.action = op_.project_save;
-item_submit_project_.action = op_.project_submit;
-item_edit_project_.action = op_.edit_info;
-item_delete_project_.action = op_.delete;
-item_show_style_.action = op_.set_style;
-item_properties_.action = op_.properties;
-item_close_project_.action = op_.project_close;
+item_create_project_.action = function() op_.project_new() end;
+item_open_project_.action = function() op_.project_open() end;
+item_save_project_.action = function() op_.project_save() end;
+item_submit_project_.action = function() op_.project_submit() end;
+item_edit_project_.action = function() op_.edit_info() end;
+item_delete_project_.action = function() op_.delete() end;
+item_show_style_.action = function() op_.set_style() end;
+item_properties_.action = function() op_.properties() end;
+item_close_project_.action = function() op_.project_close() end;
+
+item_create_folder_.action = function() op_.create_folder() end;
+item_create_file_.action = function() op_.create_file() end;
+item_import_folder_.action = function() op_.import_folder() end;
+item_import_file_.action = function() op_.import_file() end;
+item_rename_.action = function() op_.rename() end;
+item_edit_.action = function() op_.edit_info() end;
+item_delete_.action = function() op_.delete() end;
+
+item_open_.action = function() op_.open_file() end;
+item_link_to_file_.action = function() op_.link_to_file() end;
+item_link_to_model_.action = function() op_.link_to_model() end;
+
+item_project_create_folder_.action = function() op_.create_folder() end;
+item_project_import_folder_.action = function() op_.import_folder() end;
+-- item_link_to_folder_;
+-- item_link_to_file_;
+-- item_link_to_model_;
+-- item_link_to_view_;
+-- item_link_to_exe_;

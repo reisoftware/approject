@@ -22,6 +22,7 @@ _ENV = M
 local dir_ = require 'sys.dir'
 local zip_ = require 'app.Apmgr.zip'
 local code_ = require 'sys.api.code'
+local lfs = require 'lfs'
 
 function serialize_to_str(data,key,t)
 	local t = t or {};
@@ -147,7 +148,52 @@ end
 
 function read_project(zipfile)
 	local t = zip_index(zipfile)
-	return t.gid
+	return t and t.gid
 end
 
 
+local function create_folder_data(path,recursion,fileList,relativePath) --循环路径，是否递归，存储列表，保存的相对路径
+	local fileList = fileList or {}
+	local relativePath = relativePath or ''
+	local num = 1
+	for name in lfs.dir(path) do 
+		if name ~= '.' and  name ~= '..' then 
+			local mod = lfs.attributes(path .. '/' .. name,'mode')
+			local t = {name = name}
+			if mod == 'directory' then 
+				t[1] = {}
+				table.insert(fileList,num,t)
+				num = num + 1
+				if recursion then 
+					create_folder_data(path .. '/' .. name,recursion,t[1],relativePath .. name .. '/') 
+				end 
+			else
+				t.file = path .. '/' .. name
+				table.insert(fileList,t)
+			end 
+			
+		end
+	end 
+	return fileList
+end 
+
+function get_folder_list(path,recursion)
+	if not path then return end
+	path = string.gsub(path,'\\','/')
+	return create_folder_data(path,recursion)
+end
+
+function import_folder(path,recursion)
+	local foldername;
+	if string.sub(path,-1,-1) ~= '\\' then
+		foldername = string.match(path,'.+\\(.+)')
+	else 
+		foldername = string.sub(path,1,1)
+	end
+	
+	local data = {}
+	local t = {name = foldername}
+	t[1] = get_folder_list(path,recursion)
+	table.insert(data,t)
+	return data
+end
