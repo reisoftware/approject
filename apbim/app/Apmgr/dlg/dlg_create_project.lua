@@ -187,7 +187,8 @@ local function init_dlg(language)
 			alignment = 'ARIGHT';
 			margin = '5x5';
 		};
-		title = language_package_.dlg[cur_]
+		title = language_package_.dlg[cur_];
+		resize = 'NO';
 	}
 	dlg_.NATIVEPARENT = frm_hwnd
 end

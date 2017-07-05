@@ -14,6 +14,8 @@ local type = type
 local string = string
 local pairs = pairs
 local error = error
+local table = table
+local ipairs = ipairs
 
 local M = {}
 local modname = ...
@@ -93,7 +95,7 @@ function save(arg)
 end
 
 
-local function serialize_to_str(data,key,t)
+function serialize_to_str(data,key,t,state)
 	local t = t or {};
 	local curkey = key or 'db'
 	
@@ -114,14 +116,14 @@ local function serialize_to_str(data,key,t)
 		local v =data[key]
 		if type(v) == 'table' then 
 			table.insert(t,str .. ' = {};\n')
-			serialize_to_str(v,str,t)
+			serialize_to_str(v,str,t,true)
 		elseif type(v) == 'string' then 	
 			table.insert(t, str .. ' = \'' .. v .. '\';\n')
 		elseif type(v) == 'number' or type(v) == 'boolean' then 
 			table.insert(t,str .. ' = ' .. tostring(v).. ';\n')
 		end
 	end
-	if not key  then 
+	if not state  then 
 		table.insert(t,1,curkey .. ' = {};\n')
 		return table.concat(t,'')
 	end
@@ -133,3 +135,6 @@ function serialize(arg)
 	if not arg.data then return end 
 	return serialize_to_str(arg.data,arg.key)
 end
+
+
+-- print(serialize{key = 'll',data = {a =2,c = 3,da = {a=2,22,44}}})

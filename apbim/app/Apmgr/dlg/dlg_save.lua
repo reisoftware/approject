@@ -72,11 +72,13 @@ local dlg_ = iup.dialog{
 		margin = '10x10';
 	};
 	title = 'Attributes';
+	resize = 'no';
 };
+iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
 
 local function init_title()
 	lan =  language_.get()
-	lan = lan and language_package_[lan] or language_package_.default_
+	lan = lan and language_package_.support_[lan] or language_package_.default_
 	btn_cancel_.title = language_package_.cancel[lan]
 	dlg_.title = language_package_.dlg[lan]
 end

@@ -67,12 +67,12 @@ local function get_tpl_data()
 	return data
 end
 
-local function pop_dlg_info(data,state)
+local function pop_dlg_info(data,readonly)
 	local attributes;
 	local function on_ok(arg)
 		attributes = arg
 	end
-	dlg_info_.pop{data = data,on_ok = on_ok,state = state}
+	dlg_info_.pop{data = data,on_ok = on_ok,readonly = readonly}
 	return attributes
 end
 
@@ -283,7 +283,7 @@ function project_submit()
 	-- if not id then return end 
 end
 
-function edit_info(state)
+function edit_info(readonly)
 	local tree = tree_.get()
 	local id = tree:get_tree_selected()
 	local gid ;
@@ -296,7 +296,7 @@ function edit_info(state)
 	if not gid then error('data error !') return end 
 	local zipfile = project_.get_project()
 	local t = disk_.read_zipfile(zipfile,gid)
-	local info = pop_dlg_info(t and t.info,state) 
+	local info = pop_dlg_info(t and t.info,readonly) 
 	if not info then return end 
 	t.info = info
 	project_.edit(gid,t)
@@ -323,7 +323,7 @@ function set_style()
 end
 
 function properties()
-	edit_info('read')
+	edit_info(true)
 end
 
 local function add_folder(arg)
@@ -477,4 +477,46 @@ end
 
 function link_to_model()
 	
+end
+
+
+function save_project_template()
+end
+
+
+local function deal_import_template(data,id)
+	local curid = id 
+	for k,v in ipairs(data) do 
+		if #v ~= 0  then 
+			curid = add_folder{name = v.name,state = k ~= 1 and true,id = id,opened = true}
+			deal_import_data(v[1],curid)
+		else
+			add_file{name= v.name,file = v.file,state = k ~= 1 and true,id = id}
+		end
+	end
+end
+
+function import_template()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN',DIRECTORY = 'app/apmgr/tpl/',EXTFILTER  = 'LUA files|*.lua|'}
+	filedlg:popup()
+	local file = filedlg.value
+	if not file then return end 
+	local tree = tree_.get()
+	local count = tree:get_childcount()
+	if count and count ~= 0 then 
+		local alarm = iup.Alarm('Notice','Whether to clear the project files !','Yes','No')
+		if alarm == 1 then 
+			tree:delete_nodes('CHILDREN')
+		end
+	end
+	file = string.sub(file,1,-5)
+	file = string.gsub(file,'\\','.')
+	local data = require_data_file(file)
+	if type(data) ~= 'table' or not data.structure then
+		iup.Message('Notice','It is not a tpl file !')
+		return
+	end 
+	local data = data.structure
+	local id = tree_.get_id()
+	deal_import_template(data,id)
 end

@@ -42,59 +42,92 @@ local language_package_ = {
 } 
 local matrix_num_ = 0;
 local lan;
+local btn_cancel_;
+local btn_ok_ ;
+local btn_add_;
+local btn_delete_;
+local btn_edit_;
+local lab_key_;
+local txt_key_;
+local lab_val_ ;
+local txt_val_ ;
+local dlg_;
+local matrix_info_;
 
-local btn_wid = '100x';
-local btn_cancel_ = iup.button{title = 'Cancel',rastersize = btn_wid};
-local btn_ok_ = iup.button{title = 'Ok',rastersize = btn_wid};
-local btn_add_ = iup.button{title = 'Add',rastersize = btn_wid};
-local btn_delete_ = iup.button{title = 'Delete',rastersize = btn_wid};
-local btn_edit_ = iup.button{title = 'Edit',rastersize = btn_wid};
-local lab_wid = '70x'
-local lab_key_ = iup.label{title = ' Key : ',}
-local txt_key_ = iup.text{expand = 'HORIZONTAL'}
-local lab_val_ = iup.label{title = ' Value : '}
-local txt_val_ = iup.text{expand = 'HORIZONTAL',
--- rastersize = 'x100',multiline = 'YES',wordwarp = 'YES'
-}
-local matrix_info_ = iup.matrix{
-	numcol = 2;
-	numlin = 20;
-	HIDDENTEXTMARKS = 'yes';
-	RESIZEMATRIX = 'YES';
-	RASTERWIDTH1 = '300x';
-	RASTERWIDTH2 = '300x';
-	MARKMODE = 'CELL';
-	rastersize = '635x300';
-	bgcolor = '255 255 255';
-	ALIGNMENT1 = 'ALEFT';
-	ALIGNMENT2 = 'ALEFT';
-	ALIGNMENTLIN0 = 'ALEFT';
-}
-local frame_info_ = iup.frame{
-	iup.vbox{
-		matrix_info_;
-		iup.hbox{lab_key_,txt_key_,lab_val_,txt_val_};
-		-- iup.hbox{lab_val_,txt_val_};
-		iup.hbox{btn_add_,btn_edit_,btn_delete_};
-		alignment = 'ARIGHT';
-		margin = '5x5';
-	};
-	-- bgcolor = '255 255 255';
-};
-local dlg_ = iup.dialog{
-	iup.vbox{
-		frame_info_;
-		iup.hbox{btn_ok_,btn_cancel_};
-		alignment = 'ARIGHT';
-		margin = '10x10';
-	};
-	title = 'Attributes';
-};
+local function init_dlg(arg)
+	local btn_wid = '100x';
+	 btn_cancel_ = iup.button{title = 'Cancel',rastersize = btn_wid};
+	 btn_ok_ = iup.button{title = 'Ok',rastersize = btn_wid};
+	 btn_add_ = iup.button{title = 'Add',rastersize = btn_wid};
+	 btn_delete_ = iup.button{title = 'Delete',rastersize = btn_wid};
+	 btn_edit_ = iup.button{title = 'Edit',rastersize = btn_wid};
+	local lab_wid = '70x'
+	 lab_key_ = iup.label{title = ' Key : ',}
+	 txt_key_ = iup.text{expand = 'HORIZONTAL'}
+	 lab_val_ = iup.label{title = ' Value : '}
+	 txt_val_ = iup.text{expand = 'HORIZONTAL',}
+
+	matrix_info_ = iup.matrix{
+		numcol = 3;
+		numlin = 20;
+		HIDDENTEXTMARKS = 'yes';
+		RESIZEMATRIX = 'YES';
+		RASTERWIDTH1 = '300x';
+		RASTERWIDTH2 = '300x';
+		RASTERWIDTH3 = '0x';
+		MARKMODE = 'CELL';
+		rastersize = '635x300';
+		bgcolor = '255 255 255';
+		ALIGNMENT1 = 'ALEFT';
+		ALIGNMENT2 = 'ALEFT';
+		ALIGNMENTLIN0 = 'ALEFT';
+		readonly = 'yes';
+	}
+	if arg and  arg.readonly then 
+		local frame_info_ = iup.frame{
+			iup.vbox{
+				matrix_info_;
+				alignment = 'ARIGHT';
+				margin = '5x5';
+			};
+		};
+		dlg_ = iup.dialog{
+			iup.vbox{
+				frame_info_;
+				iup.hbox{btn_cancel_};
+				alignment = 'ARIGHT';
+				margin = '10x10';
+			};
+			title = 'Attributes';
+			resize = 'YES';
+		};
+	else 
+		local frame_info_ = iup.frame{
+			iup.vbox{
+				matrix_info_;
+				iup.hbox{lab_key_,txt_key_,lab_val_,txt_val_};
+				iup.hbox{btn_add_,btn_edit_,btn_delete_};
+				alignment = 'ARIGHT';
+				margin = '5x5';
+			};
+		};
+		dlg_ = iup.dialog{
+			iup.vbox{
+				frame_info_;
+				iup.hbox{btn_ok_,btn_cancel_};
+				alignment = 'ARIGHT';
+				margin = '10x10';
+			};
+			title = 'Attributes';
+			resize = 'YES';
+		};
+	end
+	iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
+end
 
 local function init_title()
 	lan =  language_.get()
-	lan = lan and language_package_[lan] or language_package_.default_
-	
+	lan = lan and language_package_.support_[lan] or language_package_.default_
 	btn_ok_.title = language_package_.ok[lan]
 	btn_cancel_.title = language_package_.cancel[lan]
 	btn_add_.title = language_package_.add[lan]
@@ -217,7 +250,6 @@ local function init_callback(arg)
 		end
 		init_text()
 	end
-	
 end
 
 local function sort(data)
@@ -239,7 +271,6 @@ end
 
 local function init_data(data)
 	clear_matrix()
-	
 	data = data or {}
 	local data = sort(data)
 	for k,v in ipairs(data) do 
@@ -250,15 +281,15 @@ local function init_data(data)
 	matrix_info_.redraw = 'all'
 end
 
-
-
 function pop(arg)
 	arg = arg or {}
 	local function init()
+		init_dlg(arg)
 		init_title()
 		init_callback(arg)
 		dlg_:map()
 		init_data(arg.data)
+		
 	end
 
 	init()
