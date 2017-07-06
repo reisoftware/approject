@@ -4,8 +4,8 @@ return {
 	icon = 'app/Apmgr/res/projects.bmp';
 	-- preview = 'app/Apmgr/res/prebim.bmp';
 	attributes = {
-		['create time'] = '';
-		
+		['Project ID'] = '';
+
 	};
 	structure = {
 		{
@@ -15,7 +15,7 @@ return {
 					attributes = {name = '3D';};
 				};
 				{
-					attributes = {name = 'Views';};
+					attributes = {name = 'ÊÓÍ¼';};
 					{
 						{
 							attributes = {name = '×óÊÓÍ¼';};

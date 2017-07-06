@@ -114,7 +114,7 @@ local function list_filename(path,recursion,fileList,relativePath) --循环路�
 	return fileList
 end 
 --[[
-函数名：get_name_list(path,recursion)
+函数名： get_name_list(path,recursion)
 功能： 获取文件夹内（递归包含子文件夹）的文件或者文件夹列表。
 参数：
 	path ： 目标文件夹 ，'a/b/c/' 或者 'a\\b\\c\\'
@@ -143,4 +143,5 @@ function get_name_list(path,recursion)
 	if not attr then return  end
 	return list_filename(path,recursion)
 end
+
 

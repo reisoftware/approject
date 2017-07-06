@@ -9,6 +9,7 @@ local table = table
 local string = string
 local print = print
 local io_open_ = io.open
+local os_time_ = os.time
 
 
 local M = {}
@@ -49,10 +50,12 @@ function get_gid_data(arg)
 	return {
 		gid = arg.gid or (luaext_.guid()  .. (arg.kind and arg.kind == 'file' and 1 or 0)),
 		name = arg.name,
-		info = arg.info or {},
+		file = arg.file and string.gsub(arg.file,'\\','/');
+		info = arg.info or {
+			createTime = os_time_;
+			
+		},
 		versions = arg.versions or {};
-		--writer;
-		--owner;
 	}
 end
 
@@ -60,6 +63,6 @@ function get_folder_data(arg)
 	return {
 		gid = arg.gid or (luaext_.guid()  .. (arg.kind and arg.kind == 'file' and 1 or 0));
 		name = arg.name ;
-		hid = arg.hid or '-1';
+		-- hid = arg.hid or '-1';
 	}
 end

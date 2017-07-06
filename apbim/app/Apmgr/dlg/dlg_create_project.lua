@@ -183,11 +183,14 @@ local function init_dlg(language)
 			iup.hbox{lab_name_,txt_name_};
 			-- iup.hbox{lab_location_,txt_location_,btn_dir_};
 			iup.fill{rastersize = 'x10'};
-			iup.hbox{tog_info_,tog_open_,iup.fill{},btn_next_,btn_cancel_};
+			-- iup.hbox{tog_info_,tog_open_,iup.fill{},btn_next_,btn_cancel_};
+			iup.hbox{tog_info_,iup.fill{},btn_next_,btn_cancel_};
+
 			alignment = 'ARIGHT';
 			margin = '5x5';
 		};
-		title = language_package_.dlg[cur_]
+		title = language_package_.dlg[cur_];
+		resize = 'NO';
 	}
 	dlg_.NATIVEPARENT = frm_hwnd
 end
@@ -269,7 +272,7 @@ local function init_data(data)
 	txt_location_.value = default_path_
 	txt_name_.value = '';
 	tog_info_.value = 'ON'
-	tog_open_.value  = 'ON'
+	tog_open_.value  = 'OFF'
 end
 
 function pop(arg)

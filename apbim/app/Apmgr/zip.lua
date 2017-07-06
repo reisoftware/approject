@@ -23,7 +23,11 @@ local sys_zip_ = require 'sys.zip'
 
 function open(zipfile)
 	local ar = zip_.open(zipfile,zip_.CREATE)
-	local f =function() ar:close() end 
+	local f =function() 
+		if ar then 
+			ar:close()
+		end
+	end 
 	return ar,f
 end
 
@@ -71,7 +75,10 @@ end
 
 
 function add(ar,file,mode,src)
-	sys_zip_.add(ar,file,mode,src)
+	local file_idx = ar:name_locate(file)
+	if file_idx then ar:replace(file_idx,mode,src) return end
+	-- sys_zip_.add(ar,file,mode,src)
+	ar:add(file,mode,src);
 end
 
 function create(zipfile,str)
@@ -80,3 +87,12 @@ function create(zipfile,str)
 	add(ar,'Files/__index.lua','string',str)
 	close();
 end
+
+function delete(ar,file)
+	local file_idx = ar:name_locate(file)
+	if not file_idx then return end
+	ar:delete(file_idx)
+end
+
+
+

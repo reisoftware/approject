@@ -7,6 +7,7 @@ local type = type
 local ipairs = ipairs
 local require  = function (str)  return require(string.lower(str)) end 
 local package_loaded_ = package.loaded
+local os_remove_ = os.remove
 
 
 local M = {}
@@ -17,38 +18,98 @@ _ENV = M
 local lfs_ =require 'lfs'
 local disk_ =  require 'app.Apmgr.disk'
 local project_path_ = 'Projects/'
+local listFile_='__filelist.lua'
 lfs_.mkdir(project_path_)
 local current_project_ ;
 local project_cache_ = {}
 
-function init()
-	current_project_ = nil
-	project_cache_ = {}
-	project_cache_.read = {}
-	project_cache_.save = {}
-end
-
-
-function add_cache_data(id)
-	if not project_cache_[id] then 
-		project_cache_.read[id] = disk_.read_zipfile( get(),id)
-	end
-end
-
-
-function get_hid_indexId(gid)
+function get_hid_filename(gid)
 	return gid .. '.hid'
 end
 
-function get()
+local function init_project(zipfile)
+	current_project_ = zipfile
+	project_cache_ = {}
+	project_cache_.read = {}
+	project_cache_.save = {}
+	project_cache_.__filelist = {}
+	project_cache_.gid = nil
+end
+
+function get_project()
 	return current_project_
 end
 
-function get_id_data(id)
-	return project_cache_[id]
+local function init_project_gid()
+	local zipfile = get_project()
+	project_cache_.gid =  disk_.read_project(zipfile)
+end
+
+function get_project_gid()
+	return project_cache_.gid 
+end
+
+local function init_project_filelist()
+	local zipfile = get_project()
+	project_cache_.__filelist =  disk_.read_zipfile( zipfile,listFile_) or {}
+end
+
+function set_project_filelist(data)
+	project_cache_.__filelist =  data
+end
+
+function get_project_filelist()
+	return project_cache_.__filelist 
+end
+
+function save_project_filelist(zipfile,data)
+	local str = disk_.serialize_to_str( data )
+	local zipfile = zipfile or get_project()
+	disk_.save_to_zipfile(zipfile,listFile_,str)
+end
+
+local function init_project_style()
+	project_cache_.style =  disk_.read_project(zipfile,'style')
+end
+
+function get_project_style()
+	return project_cache_.style
+end
+
+function set_project_style(style)
+	project_cache_.style  = style
+end
+
+function save_project_style(zipfile,style)
+	local zipfile = zipfile or get_project()
+	local t = disk_.zip_index(zipfile)
+	t.style = style or get_project_style()
+	disk_.save_to_zipfile(zipfile,listFile_,disk_.serialize_to_str(t))
+end
+
+function init(zipfile)
+	init_project(zipfile)
+	init_project_gid()
+	init_project_filelist()
+	init_project_style()
 end
 
 
+
+function add_read_data(id)
+	if not project_cache_.read[id] then 
+		project_cache_.read[id] = disk_.read_zipfile( get_project(),id)
+	end
+end
+
+local function add_change_data(id,data,state)
+	project_cache_.save[id] = {data = data,state = state}
+end
+
+
+function get_cache_data(id)
+	return  project_cache_.read[id]
+end
 
 function get_project_path()
 	return project_path_
@@ -73,35 +134,26 @@ function get_project_list()
 	return get_projectlist()
 end
 
---pro =file
-function set(file)
-	current_project_ = file
-	project_cache_ = {}
-end
-
-
 function init_folder_data(id)
-	local indexId = get_hid_indexId(id)
-	add_cache_data(indexId)
+	local indexId = get_hid_filename(id)
+	add_read_data(indexId)
 	return indexId
 end
 
-function project_index_id()
-	return project_cache_.__index
-end
-
-
-function open()
-	local zipfile = get()
-	project_cache_.__index =  disk_.read_project(zipfile)
-	-- init_folder_data(projectid)
+function close()
+	init()
 end
 
 function save()
+	-- save_project_filelist()
 end
 
 function edit(gid,data)
-	-- add_cache_data(gid,data)
+	add_change_data(gid,data)
+end
+
+function delete_project(zipfile)
+	os_remove_(zipfile)
 end
 
 

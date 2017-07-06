@@ -17,7 +17,7 @@ local modname = ...
 _G[modname] = M
 package_loaded_[modname] = M
 _ENV = M
-
+-- require 'iup_dev'
 local iup = require 'iuplua'
 require 'iupluacontrols'
 require "iupluaimglib"
@@ -28,7 +28,7 @@ local language_package_ = {
 	default_ = 'Chinese';
 	support_ = {English = 'English',Chinese = 'Chinese'};
 	cancel = {English = 'Close',Chinese = '终止'};
-	dlg = {English = 'Saving',Chinese = '保存'};
+	dlg = {English = 'Progress',Chinese = '进度'};
 	checking =  {English = 'Checking ... ',Chinese = '检查 ... '};
 	saving =  {English = 'Saving ... ',Chinese = '保存 ... '};
 }
@@ -38,7 +38,7 @@ local lan;
 local btn_wid = '100x';
 local btn_cancel_ = iup.button{title = 'Close',rastersize = btn_wid};
 local lab_wid = '70x'
-local gauge_ = iup.gauge{expand = 'HORIZONTAL',rastersize = 'x30'};
+local gauge_ = iup.gauge{expand = 'HORIZONTAL',rastersize = '500x20'};
 local matrix_info_ = iup.matrix{
 	numcol = 2;
 	numlin = 20;
@@ -66,17 +66,19 @@ local frame_info_ = iup.frame{
 local dlg_ = iup.dialog{
 	iup.vbox{
 		gauge_;
-		matrix_info_;
-		iup.hbox{btn_cancel_};
+		-- matrix_info_;
+		-- iup.hbox{btn_cancel_};
 		alignment = 'ARIGHT';
 		margin = '10x10';
 	};
 	title = 'Attributes';
+	resize = 'no';
 };
+iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
 
 local function init_title()
 	lan =  language_.get()
-	lan = lan and language_package_[lan] or language_package_.default_
+	lan = lan and language_package_.support_[lan] or language_package_.default_
 	btn_cancel_.title = language_package_.cancel[lan]
 	dlg_.title = language_package_.dlg[lan]
 end
@@ -158,34 +160,21 @@ local function clear_matrix()
 	matrix_num_ = 0
 end
 
-local function waiting_guage(max)
-	gauge_.TEXT  = language_package_.checking[lan]
+local function init_guage(max)
+	-- gauge_.TEXT  = language_package_.checking[lan]
 	gauge_.MAX = max
 	gauge_.min = 0
 end
 
-local function guage_up()
-	local val = tonumber(gauge_.value) +1
+local function guage_up(num)
+	local val = tonumber(gauge_.value) + (num or 1)
 	gauge_.value =val
-	if val >= tonumber(gauge_.MAX )  then
-		dlg_:hide()
-	end
 end
 
 local function init_data(arg)
 	arg = arg or {}
-	clear_matrix()
-	if type(arg.init) then 
-		arg.init{
-			waiting_guage = waiting_guage;
-		}
-	end 
-	-- init_guage('checking',)
-	matrix_add_line{key = v.key,value = v.value}
-	matrix_info_.redraw = 'all'
+	init_guage(arg.totalnums)
 end
-
-
 
 function pop(arg)
 	arg = arg or {}
@@ -195,7 +184,15 @@ function pop(arg)
 		dlg_:map()
 		init_data(arg)
 	end
+	local function stop()
+		dlg_:hide()
+		iup.ExitLoop()
+	end
 
 	init()
-	dlg_:popup()
+	dlg_:show()
+	arg.run(guage_up,stop)
+	iup.MainLoop()
+	
 end
+

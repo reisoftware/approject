@@ -8,14 +8,17 @@ local print = print
 local table = table
 local os_exit_ = os.exit
 local pairs = pairs
+local ipairs = ipairs
 local string = string
 
 local M = {}
 local modname = ...
 _G[modname] = M
 package_loaded_[modname] = M
-
 _ENV = M
+
+local tree_ =  require 'app.apmgr.project.tree'
+local project_ = require 'app.Apmgr.project.project'
 
 local language_ = require 'sys.language'
 local cur_language_ = 'English'
@@ -41,7 +44,12 @@ local title_link_to_exe_ = {English = 'Installable Program',Chinese = '¿É°²×°³ÌÐ
 local title_model_ = {English = 'Model',Chinese = 'Ä£ÐÍ'}
 local title_view_ = {English = 'View',Chinese = 'ÊÓÍ¼'}
 local title_submit_ = {English = 'Submit',Chinese = 'Ìá½»'}
-local title_load_ = {English = 'Loading',Chinese = '¼ÓÔØ'}
+local title_load_ = {English = 'Loading Project',Chinese = '¼ÓÔØ¹¤³Ì'}
+local title_create_folder_ = {English = 'Create Folder',Chinese = '´´½¨ÎÄ¼þ¼Ð'}
+local title_import_folder_ = {English = 'Import Folder',Chinese = 'µ¼ÈëÎÄ¼þ¼Ð'}
+local title_save_template_ = {English = 'Save Template',Chinese = '±£´æÄ£°å'}
+local title_import_template_ = {English = 'Import Template',Chinese = 'µ¼ÈëÄ£°å'}
+
 
 local item_create_project_ = {}
 local item_quit_ = {}
@@ -63,12 +71,17 @@ local item_link_to_ = {};
 local item_link_to_file_ = {};
 local item_link_to_folder_ = {};
 local item_link_to_exe_ = {};
-local item_link_to_member_ = {};
+local item_link_to_model_ = {};
 local item_link_to_view_ = {};
 local item_rename_ = {};
 local item_edit_ = {};
 local item_submit_project_ = {}
 local item_open_ = {};
+local item_project_create_folder_ = {}
+local item_project_import_folder_ = {}
+
+local item_save_template_ = {}
+local item_import_template_ = {}
 
 local function sub_import_items()
 	return {
@@ -87,20 +100,20 @@ item_create_ = {submenu = sub_add_items}
 
 local function sub_link_to_items()
 	return {
-		item_link_to_folder_;
+		-- item_link_to_folder_;
 		item_link_to_file_;
-		'';
-		item_link_to_member_;
-		item_link_to_view_;
-		'';
-		item_link_to_exe_;
+		-- '';
+		-- item_link_to_model_;
+		-- item_link_to_view_;
+		-- '';
+		-- item_link_to_exe_;
 	}
 end
 item_link_to_ = {submenu = sub_link_to_items}
 
 --------------------------------------------------------------------------------------------------------
 --api
-local function init()
+local function init_title()
 	local lan = language_.get()
 	cur_language_=  lan and language_support_[lan] or 'English'
 	item_close_project_.title = title_close_[cur_language_]
@@ -124,13 +137,57 @@ local function init()
 	item_link_to_file_.title = title_file_[cur_language_]
 	item_link_to_folder_.title = title_folder_[cur_language_]
 	item_link_to_exe_.title = title_link_to_exe_[cur_language_]
-	item_link_to_member_.title = title_model_[cur_language_]
+	item_link_to_model_.title = title_model_[cur_language_]
 	item_link_to_view_.title = title_view_[cur_language_]
 	item_create_.title = title_create_[cur_language_]
 	item_create_folder_.title = title_folder_[cur_language_];
 	item_create_file_.title = title_file_[cur_language_];
 	item_submit_project_.title = title_submit_[cur_language_];
 	item_open_.title = title_open_[cur_language_];
+	item_project_create_folder_.title = title_create_folder_[cur_language_];
+	item_project_import_folder_.title = title_import_folder_[cur_language_];
+	item_save_template_.title = title_save_template_[cur_language_];
+	item_import_template_.title = title_import_template_[cur_language_];
+end
+
+local function init_active(state)
+	item_close_project_.active = state;
+	item_create_project_.active = state;
+	item_open_project_.active = state;
+	item_save_project_.active = state;
+	item_quit_.active = state;
+	item_delete_project_.active = state;
+	item_edit_project_.active = state;
+	item_show_style_.active = state;
+	
+	item_properties_.active = state;
+	item_import_.active = state;
+	item_import_file_.active = state;
+	item_import_folder_.active = state;
+	item_delete_.active = state;
+	item_rename_.active = state;
+	item_edit_.active = state;
+	
+	item_link_to_.active = state;
+	item_link_to_file_.active = state;
+	item_link_to_folder_.active = state;
+	item_link_to_exe_.active = state;
+	item_link_to_model_.active = state;
+	item_link_to_view_.active = state;
+	item_create_.active = state;
+	item_create_folder_.active = state;
+	item_create_file_.active = state;
+	item_submit_project_.active = state;
+	item_open_.active = state;
+	item_project_create_folder_.active = state;
+	item_project_import_folder_.active = state;
+	item_save_template_.active = state
+	item_import_template_.active = state
+end
+
+local function init()
+	init_title()
+	init_active('yes')
 end
 
 function get_root()
@@ -142,29 +199,43 @@ function get_root()
 	}
 end
 
+local function init_project_menu()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local data = tree:get_node_data(id)
+	local pro = project_.get_project()
+	if pro and pro == data.file then 
+		return  {
+			item_project_create_folder_;
+			item_project_import_folder_;
+			item_import_template_;
+			'';
+			item_edit_project_;
+			item_delete_project_;
+			'';
+			-- item_show_style_;
+			item_properties_;
+			'';
+			item_save_project_;
+			item_save_template_;
+			'';
+			item_close_project_;
+		}
+	else 
+		return {
+			item_open_project_;
+		}
+	end
+end
+
 function get_project()
 	init()
-	return {
-		item_open_project_;
-		'';
-		item_save_project_;
-		-- item_submit_project_;
-		'';
-		item_edit_project_;
-		item_delete_project_;
-		'';
-		item_show_style_;
-		item_properties_;
-		'';
-		item_close_project_;
-	}
+	return init_project_menu()
 end
 
 function get_folder()
 	init()
 	return {
-		item_open_;
-		'';
 		item_create_;
 		item_import_;
 		'';
@@ -193,12 +264,35 @@ end
 --------------------------------------------------------------------------------------------
 --action function
 item_quit_.action = op_.quit;
-item_create_project_.action = op_.project_new;
-item_open_project_.action = op_.project_open;
-item_save_project_.action = op_.project_save;
-item_submit_project_.action = op_.project_submit;
-item_edit_project_.action = op_.edit_info;
-item_delete_project_.action = op_.delete;
-item_show_style_.action = op_.set_style;
-item_properties_.action = op_.properties;
-item_close_project_.action = op_.project_close;
+item_create_project_.action = function() op_.project_new() end;
+item_open_project_.action = function() op_.project_open() end;
+item_save_project_.action = function() op_.project_save() end;
+item_submit_project_.action = function() op_.project_submit() end;
+item_edit_project_.action = function() op_.edit_info() end;
+item_delete_project_.action = function() op_.delete() end;
+item_show_style_.action = function() op_.set_style() end;
+item_properties_.action = function() op_.properties() end;
+item_close_project_.action = function() op_.project_close() end;
+
+item_create_folder_.action = function() op_.create_folder() end;
+item_create_file_.action = function() op_.create_file() end;
+item_import_folder_.action = function() op_.import_folder() end;
+item_import_file_.action = function() op_.import_file() end;
+item_rename_.action = function() op_.rename() end;
+item_edit_.action = function() op_.edit_info() end;
+item_delete_.action = function() op_.delete() end;
+
+item_open_.action = function() op_.open_file() end;
+item_link_to_file_.action = function() op_.link_to_file() end;
+item_link_to_model_.action = function() op_.link_to_model() end;
+
+item_project_create_folder_.action = function() op_.create_folder() end;
+item_project_import_folder_.action = function() op_.import_folder() end;
+
+item_save_template_.action = function() op_.save_project_template() end;
+item_import_template_.action = function() op_.import_template() end;
+-- item_link_to_folder_;
+-- item_link_to_file_;
+-- item_link_to_model_;
+-- item_link_to_view_;
+-- item_link_to_exe_;

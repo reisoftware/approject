@@ -22,6 +22,7 @@ _ENV = M
 local dir_ = require 'sys.dir'
 local zip_ = require 'app.Apmgr.zip'
 local code_ = require 'sys.api.code'
+local lfs = require 'lfs'
 
 function serialize_to_str(data,key,t)
 	local t = t or {};
@@ -47,8 +48,8 @@ function serialize_to_str(data,key,t)
 			serialize_to_str(v,str,t)
 		elseif type(v) == 'string' then 	
 			table.insert(t, str .. ' = \'' .. v .. '\';\n')
-		elseif type(v) == 'number' and type(v) == 'boolean' then 
-			table.insert(t,str .. ' = ' .. v .. ';\n')
+		elseif type(v) == 'number' or type(v) == 'boolean' then 
+			table.insert(t,str .. ' = ' .. tostring(v).. ';\n')
 		end
 	end
 	if not key  then 
@@ -59,6 +60,10 @@ end
 
 function save_file(file,data)
 	code_.save{key = 'db',file = file,data = data}
+end
+
+function save_require_file(file,data)
+	require'sys.table'.tofile{file=file,src=data};
 end
 
 function delete_file(file)
@@ -92,17 +97,40 @@ function zip_index(zip)
 	return zip_file_data(zip,'__index.lua')
 end
 
-function create_project(zipfile,gid)
-	zip_.create(zipfile,'db = {};\ndb[\'gid\'] = \'' .. gid .. '\';\n')
+function zipfile_save_index(zipfile,str)
+	save_to_zipfile(zipfile,'__index.lua',str)
 end
 
-function save_to_zipfile(zipfile,id,str)
+function zipfile_open(zipfile)
+	return zip_.open(zipfile)
+end
+
+function save_to_zipfile(zipfile,id,str,ar)
 	if type(str) ~= 'string' then return end 
 	if not zipfile or not id then return end 
 	local file = 'Files/' .. id
-	local ar,close = zip_.open(zipfile)
+	local ar,close = ar;
+	if not ar then 
+		ar,close =  zip_.open(zipfile)
+	end
 	zip_.add(ar,file,'string',str)
-	close()
+	if close then 
+		close()
+	end
+end
+
+function zipfile_remove_file(zipfile,id,ar)
+	if not zipfile or not id then return end 
+	local file = 'Files/' .. id
+	local ar,close = ar or zip_.open(zipfile)
+	if close then 
+		zip_.delete(ar,file)
+		close()
+	end
+end
+
+function create_project(zipfile,gid)
+	zip_.create(zipfile,'db = {};\ndb[\'gid\'] = \'' .. gid .. '\';\n')
 end
 
 local function read_string_from_file(file)
@@ -143,9 +171,56 @@ function read_zipfile(zipfile,id)
 	return zip_file_data(zipfile,id)
 end
 
-function read_project(zipfile)
+function read_project(zipfile,key)
 	local t = zip_index(zipfile)
-	return t.gid
+	if t then 
+		return key and t[key] or t.gid
+	end
 end
 
 
+local function create_folder_data(path,recursion,fileList,relativePath) --循环路径，是否递归，存储列表，保存的相对路径
+	local fileList = fileList or {}
+	local relativePath = relativePath or ''
+	local num = 1
+	for name in lfs.dir(path) do 
+		if name ~= '.' and  name ~= '..' then 
+			local mod = lfs.attributes(path .. '/' .. name,'mode')
+			local t = {name = name}
+			if mod == 'directory' then 
+				t[1] = {}
+				table.insert(fileList,num,t)
+				num = num + 1
+				if recursion then 
+					create_folder_data(path .. '/' .. name,recursion,t[1],relativePath .. name .. '/') 
+				end 
+			else
+				t.file = path .. '/' .. name
+				table.insert(fileList,t)
+			end 
+			
+		end
+	end 
+	return fileList
+end 
+
+function get_folder_list(path,recursion)
+	if not path then return end
+	path = string.gsub(path,'\\','/')
+	return create_folder_data(path,recursion)
+end
+
+function import_folder(path,recursion)
+	local foldername;
+	if string.sub(path,-1,-1) ~= '\\' then
+		foldername = string.match(path,'.+\\(.+)')
+	else 
+		foldername = string.sub(path,1,1)
+	end
+	
+	local data = {}
+	local t = {name = foldername}
+	t[1] = get_folder_list(path,recursion)
+	table.insert(data,t)
+	return data
+end
