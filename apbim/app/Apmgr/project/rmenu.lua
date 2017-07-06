@@ -27,14 +27,18 @@ local language_support_ = {English = 'English',Chinese = 'Chinese'}
 
 local title_create_project_ = {English = 'Create Project',Chinese = '创建工程'}
 local title_properties_ = {English = 'Properties',Chinese = '属性'}
+local title_project_properties_ = {English = 'Project Properties',Chinese = '工程属性'}
 local title_create_ = {English = 'Create',Chinese = '创建'}
 local title_file_  = {English = 'File',Chinese = '文件'}
 local title_folder_ = {English = 'Folder',Chinese = '文件夹'}
 local title_open_ = {English = 'Open',Chinese = '打开'}
 local title_save_ = {English = 'Save',Chinese = '保存'}
 local title_close_ = {English = 'Close',Chinese = '关闭'}
+local title_close_project_ = {English = 'Close Project',Chinese = '关闭工程'}
 local title_delete_ = {English = 'Delete',Chinese = '删除'}
+local title_delete_project_ = {English = 'Delete Project',Chinese = '删除工程'}
 local title_edit_ = {English = 'Edit',Chinese = '编辑'}
+local title_edit_project_ = {English = 'Edit Information',Chinese = '编辑信息'}
 local title_show_style_ = {English = 'Change Style',Chinese = '切换样式'}
 local title_import_ = {English = 'Import',Chinese= '导入'}
 local title_create_ = {English = 'Create',Chinese = '创建'}
@@ -47,8 +51,11 @@ local title_submit_ = {English = 'Submit',Chinese = '提交'}
 local title_load_ = {English = 'Loading Project',Chinese = '加载工程'}
 local title_create_folder_ = {English = 'Create Folder',Chinese = '创建文件夹'}
 local title_import_folder_ = {English = 'Import Folder',Chinese = '导入文件夹'}
-local title_save_template_ = {English = 'Save Template',Chinese = '保存模板'}
+local title_save_template_ = {English = 'Save To Template',Chinese = '保存到模板'}
 local title_import_template_ = {English = 'Import Template',Chinese = '导入模板'}
+local title_pack_ = {English = 'Packing To Declare',Chinese = '申报项目打包'}
+local title_extended_ = {English = 'Extended Application',Chinese = '扩展功能'}
+local title_import_db_ = {English = 'Model File',Chinese = '模型数据文件'}
 
 
 local item_create_project_ = {}
@@ -62,10 +69,12 @@ local item_show_style_ = {}
 local item_import_ = {};
 local item_import_file_ = {};
 local item_import_folder_ = {};
+local item_import_db_ = {};
 local item_create_ = {};
 local item_create_file_ = {};
 local item_create_folder_ = {};
 local item_properties_ = {}
+local item_project_properties_ = {}
 local item_delete_= {}
 local item_link_to_ = {};
 local item_link_to_file_ = {};
@@ -82,11 +91,15 @@ local item_project_import_folder_ = {}
 
 local item_save_template_ = {}
 local item_import_template_ = {}
+local item_pack_ = {};
+local item_extend_ = {};
 
 local function sub_import_items()
 	return {
 		item_import_folder_;
 		item_import_file_;
+		'';
+		item_import_db_;
 	}
 end
 item_import_ = {submenu = sub_import_items}
@@ -102,9 +115,9 @@ local function sub_link_to_items()
 	return {
 		-- item_link_to_folder_;
 		item_link_to_file_;
-		-- '';
-		-- item_link_to_model_;
-		-- item_link_to_view_;
+		'';
+		item_link_to_model_;
+		item_link_to_view_;
 		-- '';
 		-- item_link_to_exe_;
 	}
@@ -116,14 +129,15 @@ item_link_to_ = {submenu = sub_link_to_items}
 local function init_title()
 	local lan = language_.get()
 	cur_language_=  lan and language_support_[lan] or 'English'
-	item_close_project_.title = title_close_[cur_language_]
+	item_close_project_.title = title_close_project_[cur_language_]
 	item_create_project_.title = title_create_project_[cur_language_]
 	item_open_project_.title = title_load_[cur_language_]
 	item_save_project_.title = title_save_[cur_language_]
 	item_quit_.title = title_close_[cur_language_]
-	item_delete_project_.title = title_delete_[cur_language_]
-	item_edit_project_.title = title_edit_[cur_language_]
+	item_delete_project_.title = title_delete_project_[cur_language_]
+	item_edit_project_.title = title_edit_project_[cur_language_]
 	item_show_style_.title = title_show_style_[cur_language_]
+	item_project_properties_.title = title_project_properties_[cur_language_]
 	
 	item_properties_.title = title_properties_[cur_language_]
 	item_import_.title = title_import_[cur_language_]
@@ -148,6 +162,9 @@ local function init_title()
 	item_project_import_folder_.title = title_import_folder_[cur_language_];
 	item_save_template_.title = title_save_template_[cur_language_];
 	item_import_template_.title = title_import_template_[cur_language_];
+	item_pack_.title = title_pack_[cur_language_];
+	item_extend_.title = title_extended_[cur_language_];
+	item_import_db_.title = title_import_db_[cur_language_];
 end
 
 local function init_active(state)
@@ -183,6 +200,9 @@ local function init_active(state)
 	item_project_import_folder_.active = state;
 	item_save_template_.active = state
 	item_import_template_.active = state
+	
+	item_pack_.active = state
+	item_extend_.active = state
 end
 
 local function init()
@@ -214,11 +234,13 @@ local function init_project_menu()
 			item_delete_project_;
 			'';
 			item_show_style_;
-			item_properties_;
+			item_pack_;
+			item_extend_;
 			'';
 			item_save_project_;
 			item_save_template_;
 			'';
+			item_project_properties_;
 			item_close_project_;
 		}
 	else 
@@ -272,6 +294,8 @@ item_edit_project_.action = function() op_.edit_info() end;
 item_delete_project_.action = function() op_.delete() end;
 item_show_style_.action = function() op_.set_style() end;
 item_properties_.action = function() op_.properties() end;
+item_project_properties_.action = function() op_.properties() end;
+
 item_close_project_.action = function() op_.project_close() end;
 
 item_create_folder_.action = function() op_.create_folder() end;

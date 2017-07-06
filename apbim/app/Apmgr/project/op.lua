@@ -59,6 +59,7 @@ local function get_tpl_data()
 			local str = require_path ..  name
 			local t = require_data_file(str)
 			if type(t) == 'table' then 
+				t.name = t.name or name
 				table.insert(data,t)
 			end
 		end
@@ -191,23 +192,23 @@ local function is_go_on(id)
 	return data,tid
 end
 
-function open_folder(id)
-	local data,tid = is_go_on(id)
-	if not data then return end 
-	local gid = data.gid or project_.get_project_gid()
-	local nextIndexId = project_.get_hid_filename(gid)
-	if not nextIndexId then return end 
-	project_.add_read_data(nextIndexId)
-	local data = project_.get_cache_data(nextIndexId)
-	if not data then return end 
-	for k,v in ipairs(data) do 
-		if v.gid and string.sub(v.gid,-1,-1) == '0' then 
-			local nextIndexId = project_.get_hid_filename(v.gid)
-			project_.add_read_data(nextIndexId)
-		end
-	end
-	tree_.open_folder(tid)
-end
+-- function open_folder(id)
+	-- local data,tid = is_go_on(id)
+	-- if not data then return end 
+	-- local gid = data.gid or project_.get_project_gid()
+	-- local nextIndexId = project_.get_hid_filename(gid)
+	-- if not nextIndexId then return end 
+	-- project_.add_read_data(nextIndexId)
+	-- local data = project_.get_cache_data(nextIndexId)
+	-- if not data then return end 
+	-- for k,v in ipairs(data) do 
+		-- if v.gid and string.sub(v.gid,-1,-1) == '0' then 
+			-- local nextIndexId = project_.get_hid_filename(v.gid)
+			-- project_.add_read_data(nextIndexId)
+		-- end
+	-- end
+	-- tree_.open_folder(tid)
+-- end
 
 local function open(data,id)
 	project_.init(data.file)
@@ -240,6 +241,8 @@ local function open(data,id)
 					local t = disk_.read_zipfile(zipfile,hid)
 					loop(t,newid)
 				elseif v.gid and string.sub(v.gid,-1,-1) == '1' then 
+					local t = disk_.read_zipfile(zipfile,v.gid)
+					v.gidData = t
 					tree_.add_leaf(v,id)
 				end
 				f(2);
@@ -263,7 +266,6 @@ project_open = function (id)
 	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
 		if not project_close('Open') then return end 
-		
 	end 
 	open(data,id)
 end
@@ -469,15 +471,15 @@ local function add_folder(arg)
 	return id
 end
 
-local function add_file(arg)
-	local gid = luaext_.guid() .. '1' 
-	local t = {name =arg.name,gid = gid,file =arg.file,data = arg.data}
-	if not arg.state then 
-		tree_.add_file(t,arg.id)
-	else 
-		tree_.add_leaf(t,arg.id)
-	end
-end
+-- local function add_file(arg)
+	-- local gid = luaext_.guid() .. '1' 
+	-- local t = {name =arg.name,gid = gid,file =arg.file,data = arg.data}
+	-- if not arg.state then 
+		-- tree_.add_file(t,arg.id)
+	-- else 
+		-- tree_.add_leaf(t,arg.id)
+	-- end
+-- end
 
 local function init_folder_data(name)
 	local gid = luaext_.guid() .. '0' 
@@ -690,7 +692,7 @@ function open_file()
 	local tree = tree_.get()
 	local data = tree:get_node_data()
 	data.gidData = get_gidData(zipfile,data)
-	data.file = data.file or data.gidData.file()
+	data.file = data.file or data.gidData.file
 	if  data.file then 
 		if disk_.file_is_exist(data.file) then
 			local file = string.gsub(data.file,'/','\\')
@@ -805,7 +807,7 @@ local function deal_import_template(data,id)
 					table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
 				else 
 					local tab = init_file_data(attr.name,attr.file)
-					local newid = tree_.add_leaf({name = tab.name,gid = tab.gid,file = v.file},id)
+					local newid = tree_.add_leaf({name = tab.name,gid = tab.gid,file = v.file,gidData = tab},id)
 					local t = tree:get_node_data(newid)
 					t.gidChanged = true
 					for k,v in pairs (attr) do 
