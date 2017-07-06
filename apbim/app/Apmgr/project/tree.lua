@@ -36,12 +36,25 @@ function branch_open(id)
 end
 
 function db_click(id)
-	if id and id == 0 then return end 
+	
 	local kind = tree_:get_node_kind(id)
-	if kind == 'BRANCH' then 
-		-- branch_open(id)
-	elseif kind == 'LEAF' then  
-		-- op_.open_leaf()
+	if kind == 'LEAF' then 
+		local id = id or tree_:get_tree_selected()
+		local data = tree_:get_node_data(id)
+		if not data.gidData  then  
+			local zipfile = project_.get_project()
+			data.gidData = op_.get_gidData(zipfile,data) 
+			tree_:set_node_data(data,id)
+		end
+		if not data.gidData then return end 
+		if data.gidData.file then 
+			op_.open_file()
+		end
+		if data.gidData.model then 
+			op_.open_model()
+		end
+		if data.gidData.model then 
+		end
 	end
 	
 end
@@ -49,7 +62,7 @@ end
 function init()
 	tree_=  iupTree_.Class:new()
 	tree_:set_rastersize('300x') 
-	-- tree_:set_dlbtn(db_click)
+	tree_:set_dlbtn(db_click)
 	-- tree_:set_branchopen(branch_open)
 end
 

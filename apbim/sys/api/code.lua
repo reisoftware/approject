@@ -16,6 +16,9 @@ local pairs = pairs
 local error = error
 local table = table
 local ipairs = ipairs
+local getmetatable = getmetatable
+local setmetatable = setmetatable
+local rawget = rawget
 
 local M = {}
 local modname = ...
@@ -142,5 +145,86 @@ function serialize(arg)
 	return serialize_to_str(arg.data,arg.key)
 end
 
+--arg = {key,data,returnKey}
+function serialize_all(arg)
+	if type(arg) ~= 'table' then return end 
+	if not arg.data then return end 
+	local t = {}
+	
+	local function serialize_to_str(data,key,t)
+		local t = t or {};
+		local curkey = key or 'db'
+		local tempt = {}
+		for k,v in pairs(data) do 
+			if rawget(data,k) and k ~= '__index' then 
+				if type(k) == 'number' or type(k) == 'string'  then 
+					table.insert(tempt,k)
+				end
+			end
+		end
+		table.sort(tempt,function(a,b) return tostring(a) < tostring(b) end )
+		
+		for k,key in ipairs (tempt) do 
+			if type(key) == 'number' then 
+				str = curkey .. '[' .. key .. ']'
+			elseif type(key) == 'string' then 
+				str = curkey .. '[\'' .. key .. '\']'
+			end
+			local v =rawget(data,key)
+			if type(v) == 'table' then 
+				table.insert(t,str .. ' = {};\n')
+				serialize_to_str(v,str,t)
+			elseif type(v) == 'string' then 	
+				table.insert(t, str .. ' = \'' .. v .. '\';\n')
+			elseif type(v) == 'number' or type(v) == 'boolean' then 
+				table.insert(t,str .. ' = ' .. tostring(v).. ';\n')
+			end
+		end
+	end
+	
+	local function serialize_met(src,key,t)
+		local met = getmetatable(src);
+		
+		if met then
+			serialize_met(met,key,t);
+		end
+		serialize_to_str(src,key,t)	
+	end
+	
+	local curkey = arg.key or 'db'
+	serialize_met(arg.data,curkey,t)
+	table.insert(t,1,curkey .. ' = {};\n')
+	if arg.returnKey then 
+		table.insert(t,'return ' .. curkey)
+	end
+	return table.concat(t,'')
+end
+----------------------------------------------------------------
+--test data 
+-- local data2 = {
+	-- a = 1;
+	-- c = 4;
+	-- key = 5;
+	-- t= {key ={1,str = '4'};};
+	-- title = 'data2';
+-- }
 
+
+-- data2.__index = data2
+-- local data1 = {
+	-- a = 9;
+	-- data= {key ={5};};
+	-- title = 'data1';
+-- }
+-- setmetatable(data1,data2)
+
+-- local data = {
+	-- a =2;b =3;
+	-- {c =4};d = {4,5,6};
+	-- title = 'data';
+-- }
+-- setmetatable(data,data1)
+-- data1.__index = data1
+-- local str = serialize_all{data = data,key = 'This',returnKey = true}
+-- print(str)
 -- print(serialize{key = 'll',data = {a =2,c = 3,da = {a=2,22,44}}})

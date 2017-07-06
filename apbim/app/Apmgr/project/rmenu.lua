@@ -35,7 +35,7 @@ local title_save_ = {English = 'Save',Chinese = '保存'}
 local title_close_ = {English = 'Close',Chinese = '关闭'}
 local title_delete_ = {English = 'Delete',Chinese = '删除'}
 local title_edit_ = {English = 'Edit',Chinese = '编辑'}
-local title_show_style_ = {English = 'Set Show Style',Chinese = '设置显示风格'}
+local title_show_style_ = {English = 'Change Style',Chinese = '切换样式'}
 local title_import_ = {English = 'Import',Chinese= '导入'}
 local title_create_ = {English = 'Create',Chinese = '创建'}
 local title_rename_ = {English = 'Rename',Chinese = '重命名'}
@@ -213,7 +213,7 @@ local function init_project_menu()
 			item_edit_project_;
 			item_delete_project_;
 			'';
-			-- item_show_style_;
+			item_show_style_;
 			item_properties_;
 			'';
 			item_save_project_;

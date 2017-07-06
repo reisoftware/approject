@@ -384,7 +384,7 @@ function project_submit()
 end
 
 
-local function get_gidData(zipfile,data)
+function get_gidData(zipfile,data)
 	return data.gidData or disk_.read_zipfile(zipfile,data.gid)  or {}
 end
 
@@ -450,7 +450,7 @@ function delete()
 end
 
 function set_style()
-	
+	-- dlg_style_.pop()
 end
 
 function properties()
@@ -689,12 +689,18 @@ end
 function open_file()
 	local tree = tree_.get()
 	local data = tree:get_node_data()
-	if data and data.file then 
-		if disk_.file_is_exist(data.file) then 
+	data.gidData = get_gidData(zipfile,data)
+	data.file = data.file or data.gidData.file()
+	if  data.file then 
+		if disk_.file_is_exist(data.file) then
 			local file = string.gsub(data.file,'/','\\')
 			os_execute_("start  \"\" " .. "\"" .. file .. "\"")
+			tree:set_node_data(data)
 		end
 	end
+end
+
+function open_model()
 end
 
 function link_to_file()
