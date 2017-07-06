@@ -286,7 +286,7 @@ project_open = function (id)
 		end 
 	end 
 	open(data,id)
-	open_model()
+	-- open_model()
 end
 
 
@@ -386,7 +386,7 @@ project_save = function ()
 	local id = get_project_id()
 	if not id then return end 
 	save(id)
-	save_model()
+	-- save_model()
 end
 
 local function need_to_save()
