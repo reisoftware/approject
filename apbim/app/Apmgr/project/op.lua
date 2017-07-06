@@ -749,8 +749,8 @@ function save_project_template()
 			if  tree:get_node_kind(curid) == 'BRANCH' then 
 				t[1] = {}
 				get_folder_data(t[1] ,curid)
+				table.insert(data,t)
 			end
-			table.insert(data,t)
 			curid = curid + 1+ tree:get_totalchildcount(curid)
 		end
 	end
