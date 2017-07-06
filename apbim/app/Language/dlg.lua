@@ -3,7 +3,8 @@ local print = print
 local type = type
 local require =require
 local pairs = pairs
-
+local enablewindow = enablewindow
+local frm_hwnd = frm_hwnd
 local M = {}
 local modname = ...
 _G[modname] = M
@@ -46,6 +47,7 @@ local dlg_ = iup.dialog{
 	expand = 'YES';
 }
 
+
 local function get_lan()
 	local s = require"sys.io".read_file{file=language_file_};
 	if type(s)~="table" then s={} end
@@ -61,15 +63,32 @@ end
 
 local function init_callback(arg)
 	arg = arg or {}
+	local function quit()
+		enablewindow(frm_hwnd,true)
+	end
+	
 	function btn_ok_:action()
 		local name = list_title_[list_title_.value]
 		save_lan(name)
 		dlg_:hide()
+		quit()
 	end
 
 	function btn_cancel_:action()
 		dlg_:hide()
+		quit()
 	end
+	
+	function dlg_:close_cb()
+		quit()
+	
+	end
+	
+	function dlg_:show_cb()
+		enablewindow(frm_hwnd,false)
+	end
+	
+		
 end
 
 local function init_data(data)
@@ -99,6 +118,8 @@ function pop(arg)
 		init_title()
 		init_callback(arg)
 	end
+	
+	
 
 	local function show()
 		dlg_:map()
@@ -107,4 +128,5 @@ function pop(arg)
 	end
 	init()
 	show()
+
 end

@@ -52,6 +52,7 @@ end
 function set(language)
 	save(language_file_,{language = language})
 	require 'sys.menu'.reload()
+	require 'sys.toolbar'.reload()
 end
 
 function get()

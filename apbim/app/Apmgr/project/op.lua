@@ -40,6 +40,12 @@ local tree_ =  require 'app.apmgr.project.tree'
 local version_ = require 'app.Apmgr.version'
 local temp_path_ = 'app/apmgr/temp/'
 local project_ = require 'app.Apmgr.project.project'
+local mgr_ = require 'sys.mgr'
+local group_ = require "sys.Group"
+
+local app_model_function_ = require 'app.Model.function'
+local app_project_function_ = require 'app.Project.function'
+
 
 
 local function table_is_empty(t)
@@ -258,6 +264,11 @@ local function open(data,id)
 	-- run()
 end
 
+local function open_model()
+	local name ,path= project_.get_project(),project_.get_project_path()
+	app_project_function_.open_name{name=name,path=path}
+end
+
 project_open = function (id)
 	local tree = tree_.get()
 	local id =  id or tree:get_tree_selected()
@@ -265,9 +276,17 @@ project_open = function (id)
 	local data = tree:get_node_data(id)
 	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
-		if not project_close('Open') then return end 
+		local a =  iup.Alarm('Notice','Whether to save the existed project  ? ','Save','No','Cancel')
+		if a  == 1 then
+			project_close('save')
+		elseif a == 2 then 
+			project_close('no')
+		else 
+			return 
+		end 
 	end 
 	open(data,id)
+	open_model()
 end
 
 
@@ -357,32 +376,39 @@ local function get_project_id()
 	return id
 end
 
-project_save = function (f)
+local function save_model()
+	-- local name ,path= project_.get_project(),project_.get_project_path()
+	-- app_project_function_.Save{name = name,path = path}
+	require"sys.mgr".save();
+end
+
+project_save = function ()
 	local id = get_project_id()
 	if not id then return end 
 	save(id)
+	save_model()
+end
+
+local function need_to_save()
+	local a =  iup.Alarm('Notice','Whether to save project  ? ','Save','No')
+	if a  == 1 then
+		return 'save'
+	end 
 end
 
 function project_close(str)
-	if str and str == 'Open' then 
-		local a =  iup.Alarm('Notice','Whether to quit and save the existed project  ? ','yes','no')
-		if a  ~= 1 then return  end 
+	local str = str or need_to_save()
+	if str and str == 'save' then 
+		project_save()
 	end
-	project_save()
 	tree_.close_project()
 	project_.close()
 	return true
 end
 
 function quit()
-	project_close(str)
+	project_close()
 	os_exit_()
-end
-
-function project_submit()	
-	print('project_submit')
-	-- local id = get_project_id()
-	-- if not id then return end 
 end
 
 
@@ -451,9 +477,7 @@ function delete()
 	tree:set_node_data(data)
 end
 
-function set_style()
-	-- dlg_style_.pop()
-end
+
 
 function properties()
 	edit_info(true)
@@ -702,8 +726,6 @@ function open_file()
 	end
 end
 
-function open_model()
-end
 
 function link_to_file()
 	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN'}
@@ -721,9 +743,7 @@ function link_to_file()
 	tree:set_node_data(data)
 end
 
-function link_to_model()
-	
-end
+
 
 
 function save_project_template()
@@ -856,4 +876,259 @@ function import_template()
 	local data = data.structure
 	local id = tree_.get_id()
 	deal_import_template(data,id)
+end
+
+local function get_model_info(curs)
+	local t = {}
+	for k,v in pairs (curs) do
+		t[k] = true 
+	end
+	return t
+end
+
+function link_to_model()
+	local curs = cur_.get()
+	if not curs or table_is_empty(curs) then
+		iup.Message("Notice","Please selected objects firstly !") 
+		return
+	end 
+	local zipfile = project_.get_project()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local data = tree:get_node_data(id)
+	data.gidData =get_gidData(zipfile,data)
+	data.gidChanged = true
+	data.gidData.model = get_model_info(curs)
+	 tree:set_node_data(data,id)
+end
+
+local function get_view_info(sc)
+	local vw = mgr_.get_view(sc)
+	local smd = group_.Class:new(vw)
+	smd:set_name(name)
+	smd:set_scene(sc)
+	smd:add_scene_all()
+	if smd.mgrids then
+		for k,v in pairs (smd.mgrids) do             
+			smd.mgrids[k] = mgr_.get_table(k)
+		end
+    end
+	mgr_.add(smd)
+	local t = {}
+	t[smd.mgrid] = true
+	return t
+end
+
+function link_to_view()
+	local curs = mgr_.curs()
+	local sc = mgr_.get_cur_scene()
+	if not sc then iup.Message("Notice","No View !") return end 
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local zipfile = project_.get_project()
+	local data = tree:get_node_data(id)
+	data.gidData = get_gidData(zipfile,data)
+	data.gidChanged = true
+	data.gidData.view = get_view_info(sc)
+	tree:set_node_data(data,id)
+end
+
+function show_model()
+	app_model_function_.Default()
+end
+
+local function get_bim_names(zipfile,tree,id)
+	local files = {}
+	local count = tree:get_childcount(id)
+	local curid = id+1
+	for i = 1,count do
+		local data = tree:get_node_data(curid)
+		data.gidData = get_gidData(zipfile,data)
+		local bimName = data.gidData and data.gidData.bimName 
+		if bimName then
+			files[string.lower(bimName)] = true
+		end
+		tree:set_node_data(data,curid)
+	end
+	return files
+end
+
+function bim_number()
+	
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local zipfile = project_.get_project()
+	local t = get_bim_names(zipfile,tree,id) 
+	local function Warning(str)
+		if t[str] then 
+			iup.Message('Notice','The name already exist ! Please reset it !')
+			return true
+		end
+	end
+	local data = tree:get_node_data(id)
+	data.gidData = get_gidData(zipfile,data)
+	local function set_data(str)
+		data.gidData.bimName = str
+		data.gidChanged = true
+		tree:set_node_data(data,id)
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data,name =data.gidData.bimName }
+end
+
+local function change_style()
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local zipfile = project_.get_project()
+	local recovery_data = {}
+	local bim_data = {}
+	recovery_data.nums = tree:get_totalchildcount(id)
+	local function run(f,stop)
+		local function loop(recovery_data,id,str)
+			local count = tree:get_childcount(id)
+			local curid = id+1
+			local str = str or  ''
+			for i = 1,count do 
+				local title =  tree:get_node_title(curid)
+				local data = tree:get_node_data(curid)
+				data.gidData = get_gidData(zipfile,data)
+				local bimName = data.gidData.bimName or title
+				local t = {title = title,data = data }
+				if tree:get_node_kind(curid) == 'BRANCH' then 
+					t[1] = {}
+					loop(t[1],curid,str  .. bimName .. '_')
+				else
+					local name = str  .. bimName
+					print(name)
+					table.insert(bim_data,{name = name,data =data })
+				end 
+				table.insert(recovery_data,t)
+				f()
+				curid = curid + 1 + tree:get_totalchildcount(curid)
+			end
+		end
+		loop(recovery_data,id)
+		stop()
+	end
+	dlg_progress_.pop{run = run ,totalnums =tree:get_totalchildcount(id)}
+
+	local function run2(f,stop)
+		tree:delete_nodes('CHILDREN',id)
+		table.sort(bim_data,function(a,b)return a.name<b.name end)
+		for i=#bim_data, 1,-1 do 
+			local t =bim_data[i]
+			tree:add_leaf(t.name,id)
+			tree:set_node_data(t.data,id+1)
+			tree:set_node_status(t.data.nodeStatusData,id+1)
+			tree:set_node_title(t.name,id+1)
+			f()
+		end
+		stop()
+	end
+	dlg_progress_.pop{run = run2 ,totalnums =#bim_data}
+	tree:set_node_state('EXPANDED',id)
+	return recovery_data
+end
+
+local function recovery_tree(data)
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local zipfile = project_.get_project()
+	tree:delete_nodes('CHILDREN',id)
+	local function run(f,stop)
+		local function loop(data,id)
+			local curid = id
+			for k,v in ipairs(data) do 
+				if k == 1 then 
+					if #v ~= 0 then 
+						tree:add_branch(v.title,curid)
+						loop(v[1],id+1)
+					else 
+						tree:add_leaf(v.title,curid)
+					end 
+					curid = curid +1
+				else 
+					if #v ~= 0 then 
+						tree:insert_branch(v.title,curid)
+						loop(v[1],curid + 1 + tree:get_totalchildcount(curid))
+					else 
+						tree:insert_leaf(v.title,curid)
+					end 
+					curid = curid + 1 + tree:get_totalchildcount(curid)
+				end
+				tree:set_node_data(v.data,curid)
+				tree:set_node_status(v.data.nodeStatusData,curid)
+				f()
+			end
+		end
+		loop(data,id)
+		tree:set_node_state('EXPANDED',id)
+		stop()
+	end
+	dlg_progress_.pop{run = run ,totalnums =data.nums}
+end
+
+function show_style()
+	-- dlg_style_.pop()
+	
+	local style  = project_.get_project_style()
+	if not style then 
+		local data = change_style()
+		project_.set_project_style(data)
+	else 
+		recovery_tree(style)
+		project_.set_project_style()
+	end
+end
+
+function packing_to_declare()
+	-- dlg_style_.pop()
+end
+
+
+function extended_application()
+	-- dlg_style_.pop()
+end
+
+function open_model()
+	
+	local tree = tree_.get()
+	local id = tree_.get_id()
+	local zipfile = project_.get_project()
+	local data = tree:get_node_data(id)
+	data.gidData = get_gidData(zipfile,data)
+	local t = data.gidData and data.gidData.model
+	if  t then 
+		local sc = mgr_.get_cur_scene() or mgr_.new_scene()
+		local ents =mgr_.get_all()
+		if type(ents) ~= "table" then return end
+		local newents = {}
+		for k,v in pairs(t) do 
+			local ent = mgr_.get_table(k)
+			mgr_.select(ent,true)
+			mgr_.redraw(ent,sc);
+			newents[k] = ent
+		end
+		mgr_.scene_to_fit{scene=sc,ents=newents};
+		mgr_.update(sc)
+	end
+end
+
+function import_db()
+	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN',EXTFILTER  = 'DB files|*.db|'}
+	filedlg:popup()
+	local val = filedlg.value
+	if not val then return end 
+	local name = string.match(val,'.+\\([^\\]+)')
+	local dat = init_file_data(name,val)
+	local id = tree_.add_folder(dat)
+	local tree = tree_.get()
+	local zipfile = project_.get_project()
+	local data = tree:get_node_data(id)
+	data.gidData = get_gidData(zipfile,data)
+	data.gidData.db = val
+	data.gidChanged = true
+	data.hidData = function() return disk_.read_file(val,'string') end 
+	data.hidChanged = true
+	tree:set_node_data(data,id)
 end

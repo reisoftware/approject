@@ -99,6 +99,7 @@ local function tree_root_attributes()
 		};
 		kind = 'branch';
 		state = 'EXPANDED';
+		recordNodeStatus = true;
 	}
 end
 
@@ -121,6 +122,7 @@ local function tree_project_attributes(arg)
 			-- close =  'app/Apmgr/res/Project.bmp'
 		-- } ;
 		kind = 'branch';
+		recordNodeStatus = true;
 		
 	}
 end
@@ -133,6 +135,7 @@ local function tree_branch_attributes(arg)
 			gid = arg.gid;
 		};
 		kind = 'branch';
+		recordNodeStatus = true;
 	}
 end
 
@@ -160,6 +163,7 @@ local function tree_leaf_attributes(arg)
 		};
 		image = image;
 		kind = 'leaf';
+		recordNodeStatus = true;
 	}
 end
 

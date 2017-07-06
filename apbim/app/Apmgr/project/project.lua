@@ -115,6 +115,10 @@ function get_project_path()
 	return project_path_
 end
 
+function get_style()
+	return 
+end
+
 
 function get_projectlist()
 	local t = disk_.get_folder_contents(project_path_)

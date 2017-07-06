@@ -56,7 +56,8 @@ local title_import_template_ = {English = 'Import Template',Chinese = '导入模板'
 local title_pack_ = {English = 'Packing To Declare',Chinese = '申报项目打包'}
 local title_extended_ = {English = 'Extended Application',Chinese = '扩展功能'}
 local title_import_db_ = {English = 'Model File',Chinese = '模型数据文件'}
-
+local title_bim_number_ =  {English = 'BIM Name',Chinese = 'Bim 编号'}
+local title_show_model_ =  {English = 'Show Model',Chinese = '显示模型'}
 
 local item_create_project_ = {}
 local item_quit_ = {}
@@ -93,6 +94,8 @@ local item_save_template_ = {}
 local item_import_template_ = {}
 local item_pack_ = {};
 local item_extend_ = {};
+local item_bim_number_ = {};
+local item_show_model_ = {};
 
 local function sub_import_items()
 	return {
@@ -165,6 +168,8 @@ local function init_title()
 	item_pack_.title = title_pack_[cur_language_];
 	item_extend_.title = title_extended_[cur_language_];
 	item_import_db_.title = title_import_db_[cur_language_];
+	item_show_model_.title = title_show_model_[cur_language_];
+	item_bim_number_.title = title_bim_number_[cur_language_];
 end
 
 local function init_active(state)
@@ -207,7 +212,7 @@ end
 
 local function init()
 	init_title()
-	init_active('yes')
+	-- init_active('yes')
 end
 
 function get_root()
@@ -224,6 +229,20 @@ local function init_project_menu()
 	local id = tree_.get_id()
 	local data = tree:get_node_data(id)
 	local pro = project_.get_project()
+	local style = project_.get_project_style()
+	if style  then 
+		if style.fixed then 
+			return {
+				item_project_properties_;
+			}
+		else 
+			return {
+				item_show_style_;
+				'';
+				item_project_properties_;
+			}
+		end
+	end 
 	if pro and pro == data.file then 
 		return  {
 			item_project_create_folder_;
@@ -237,6 +256,7 @@ local function init_project_menu()
 			item_pack_;
 			item_extend_;
 			'';
+			item_show_model_;
 			item_save_project_;
 			item_save_template_;
 			'';
@@ -257,11 +277,19 @@ end
 
 function get_folder()
 	init()
+	local style = project_.get_project_style()
+	if style  then 
+		return {
+			item_properties_;
+		}
+	end 
 	return {
 		item_create_;
 		item_import_;
 		'';
 		item_rename_;
+		item_bim_number_;
+		'';
 		item_edit_;
 		item_delete_;
 		'';
@@ -271,10 +299,21 @@ end
 
 function get_file()
 	init()
+	local style = project_.get_project_style()
+	if style  then 
+		return {
+			item_open_;
+			'';
+			item_properties_;
+		}
+	end 
+	
 	return {
 		item_open_;
 		'';
 		item_rename_;
+		item_bim_number_;
+		'';
 		item_edit_;
 		item_delete_;
 		'';
@@ -289,10 +328,9 @@ item_quit_.action = op_.quit;
 item_create_project_.action = function() op_.project_new() end;
 item_open_project_.action = function() op_.project_open() end;
 item_save_project_.action = function() op_.project_save() end;
-item_submit_project_.action = function() op_.project_submit() end;
 item_edit_project_.action = function() op_.edit_info() end;
 item_delete_project_.action = function() op_.delete() end;
-item_show_style_.action = function() op_.set_style() end;
+item_show_style_.action = function() op_.show_style() end;
 item_properties_.action = function() op_.properties() end;
 item_project_properties_.action = function() op_.properties() end;
 
@@ -309,12 +347,16 @@ item_delete_.action = function() op_.delete() end;
 item_open_.action = function() op_.open_file() end;
 item_link_to_file_.action = function() op_.link_to_file() end;
 item_link_to_model_.action = function() op_.link_to_model() end;
+item_link_to_view_.action = function() op_.link_to_view() end;
 
 item_project_create_folder_.action = function() op_.create_folder() end;
 item_project_import_folder_.action = function() op_.import_folder() end;
 
 item_save_template_.action = function() op_.save_project_template() end;
 item_import_template_.action = function() op_.import_template() end;
+item_bim_number_.action = function() op_.bim_number() end;
+item_show_model_.action = function() op_.show_model() end;
+item_import_db_.action = function() op_.import_db() end;
 -- item_link_to_folder_;
 -- item_link_to_file_;
 -- item_link_to_model_;

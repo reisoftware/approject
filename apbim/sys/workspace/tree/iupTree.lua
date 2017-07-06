@@ -903,6 +903,11 @@ function Class:set_node_status(attributes,id)
 			cmds_[k](self,id,v)
 		end
 	end
+	if attributes.recordNodeStatus then 
+		local data = self:get_node_data(id)
+		data.nodeStatusData = attributes
+		self:set_node_data(data,id)
+	end
 end
 
 

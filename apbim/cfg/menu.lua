@@ -322,6 +322,18 @@ return {
 			English = 'Change Bgcolor';
 			Chinese = '切换背景色';
 		};
+		['Show Style'] = {
+			English = 'Show Style';
+			Chinese = '显示样式';
+		};
+		['Packing To Declare'] = {
+			English = 'Packing To Declare';
+			Chinese = '申报项目打包';
+		};
+		['Extended Application'] = {
+			English = 'Extended Application';
+			Chinese = '扩展功能';
+		};
 	};	
 	{
 		name = 'User';
@@ -330,11 +342,11 @@ return {
 				name = "Login";
 				keyword ='AP.LoginPro.Login';
 			};
-			{
-				name = "Logout";
-				keyword ='AP.LoginPro.Logout';
-			};
-			{};
+			-- {
+				-- name = "Logout";
+				-- keyword ='AP.LoginPro.Logout';
+			-- };
+			-- {};
 			{
 				name = "Register";
 				keyword ='AP.LoginPro.Register';
@@ -361,29 +373,32 @@ return {
 				name = "Open";
 				keyword ='AP.Apmgr.Open';
 			};
-			{};
 			{
 				name = "Save";
 				keyword ='AP.Apmgr.Save';
 			};
-			{
-				name = "Delete";
-				keyword ='AP.Apmgr.Delete';
-			};
+			-- {
+				-- name = "Delete";
+				-- keyword ='AP.Apmgr.Delete';
+			-- };
 			{};
 			{
-				name = "Setting Show Style";
-				keyword ='AP.Apmgr.Set Show Style';
+				name = "Show Style";
+				keyword ='AP.Apmgr.Show Style';
 			};
 			{
-				name = "Submit";
-				keyword ='AP.Apmgr.Submit';
+				name = "Packing To Declare";
+				keyword ='AP.Apmgr.Packing To Declare';
 			};
+			{
+				name = "Extended Application";
+				keyword ='AP.Apmgr.Extended Application';
+			};
+			{};
 			{
 				name = "Properties";
 				keyword ='AP.Apmgr.Properties';
 			};
-			{};
 			{
 				name = "Close";
 				keyword ='AP.Apmgr.Close';
@@ -508,29 +523,29 @@ return {
   	 	 	-- };
   	 	-- };
   	-- };
- 	-- {
-  	 	-- name = "Steel";
-  	 	-- subs = {
-  	 	 	-- {
-  	 	 	 	-- name = "Draw";
-				-- subs = {
-					-- {
-						-- name = "Beam";
-						-- keyword ='AP.Steel.Darw.Beam';
-					-- };
-				-- };
-  	 	 	-- };
-  	 	 	-- {
-  	 	 	 	-- name = "Model";
-				-- subs = {
-					-- {
-						-- name = "CGB";
-						-- keyword ='AP.Steel.Model.CGB';
-					-- };
-				-- };
-  	 	 	-- };
-  	 	-- };
-  	-- };
+ 	{
+  	 	name = "Steel";
+  	 	subs = {
+  	 	 	{
+  	 	 	 	name = "Draw";
+				subs = {
+					{
+						name = "Beam";
+						keyword ='AP.Steel.Darw.Beam';
+					};
+				};
+  	 	 	};
+  	 	 	{
+  	 	 	 	name = "Model";
+				subs = {
+					{
+						name = "CGB";
+						keyword ='AP.Steel.Model.CGB';
+					};
+				};
+  	 	 	};
+  	 	};
+  	};
     {
   	 	name = "Model";
   	 	subs = {

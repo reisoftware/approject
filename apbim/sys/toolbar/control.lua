@@ -28,7 +28,25 @@ TBSTATE_PRESSED  The button is being clicked.
 TBSTATE_WRAP  The button is followed by a line break. The button must also have the TBSTATE_ENABLED state. 
 
 --]]
+local language_ =require 'sys.language'
+local remove_toolbar = remove_toolbar
 _ENV = module(...)
+
+local toobar_ids_ = {}
+function init_toolbar()
+	for k,v in ipairs (toobar_ids_) do 
+		remove_toolbar(frm,v)
+	end
+	toobar_ids_= {}
+end
+
+local cur_language_;
+local cur_styles_;
+local function turn_lan(name)
+	if not cur_styles_ or  not cur_styles_.language_package then return  name end 
+	local pkg = cur_styles_.language_package
+	return pkg[name] and pkg[name][cur_language_] or name
+end
 
 local function bmp_image(imagefile)
 	if imagefile then 
@@ -56,9 +74,9 @@ local function create_toolbar(toolbar,toolbar_db)
 			local tbar = toolbar_db[v.keyword] or menu_keyword(v.keyword);
 			if tbar then
 				local fsStyle = tbar.checkbox  and  BTNS_CHECK
-				table.insert(buts,{iBitmap  = v.image -1,idCommand = sys_id,iString = v.name,fsState  = TBSTATE_ENABLED,fsStyle = fsStyle});
+				table.insert(buts,{iBitmap  = v.image -1,idCommand = sys_id,iString =turn_lan(v.name) ,fsState  = TBSTATE_ENABLED,fsStyle = fsStyle});
 			else	
-				table.insert(buts,{iBitmap  =v.image -1,idCommand = sys_id,iString = v.name,fsState  =  TBSTATE_ENABLED,fsStyle = fsStyle});
+				table.insert(buts,{iBitmap  =v.image -1,idCommand = sys_id,iString = turn_lan(v.name),fsState  =  TBSTATE_ENABLED,fsStyle = fsStyle});
 				--trace_out("The toolbar isn't exist in database.\n");
 			end
 		else 
@@ -68,7 +86,7 @@ local function create_toolbar(toolbar,toolbar_db)
 	local toolbar_id = ID_MGR.new_id();
 	
 	local bmpname = bmp_image(toolbar.bmpname )
-	
+	table.insert(toobar_ids_,toolbar_id)
 	local sys_toolbar = {
 		id = toolbar_id;-- 工具条标识
 		bmpname =bmpname;
@@ -90,11 +108,21 @@ local function create_items(styles,toolbars)
 	end 
 end
 
+function init(styles)
+	cur_language_ = language_.get()
+	cur_styles_ = styles
+end
+local function close()
+	cur_styles_ = nil
+end 
 
 function create_toolbars(styles,toolbars)
 	if type(styles)~='table' then return end
+	init_toolbar()
 	ID_MGR.set_toolbars(toolbars);
+	init(styles)
 	create_items(styles,toolbars);
+	close()
 end
 
 
