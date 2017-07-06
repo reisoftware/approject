@@ -34,7 +34,7 @@ local luaext_ = require 'luaext'
 local disk_ =  require 'app.Apmgr.disk'
 local dlg_create_project_ =  require 'app.apmgr.dlg.dlg_create_project'
 local dlg_info_ = require 'app.apmgr.dlg.dlg_info'
-local dlg_save_ = require 'app.apmgr.dlg.dlg_save'
+local dlg_progress_ = require 'app.apmgr.dlg.dlg_progress'
 local dlg_add_ = require 'app.apmgr.dlg.dlg_add'
 local tree_ =  require 'app.apmgr.project.tree'
 local version_ = require 'app.Apmgr.version'
@@ -45,6 +45,8 @@ local project_ = require 'app.Apmgr.project.project'
 local function table_is_empty(t)
 	return g_next_(t) == nil
 end
+
+
 
 local function get_tpl_data()
 	local path = 'app/apmgr/tpl/'
@@ -208,8 +210,9 @@ function open_folder(id)
 end
 
 local function open(data,id)
-	tree_.set_marked(id)
 	project_.init(data.file)
+	local id = tree_.get_index_id(data.file)
+	tree_.set_marked(id)
 	local tree = tree_.get()
 	local filelist = project_.get_project_filelist() or {}
 	local nums = 0
@@ -228,29 +231,28 @@ local function open(data,id)
 	tree:set_node_data(tempt,id)
 	
 	local function run(f,stop)
-		-- f();f();
+		f(2);
 		local function loop(data,id)
 			for k,v in ipairs(data) do 
 				if v.gid and string.sub(v.gid,-1,-1) == '0' then 
 					local newid = tree_.add_branch(v,id)
 					local hid = project_.get_hid_filename(v.gid)
 					local t = disk_.read_zipfile(zipfile,hid)
-					-- f();f();
 					loop(t,newid)
 				elseif v.gid and string.sub(v.gid,-1,-1) == '1' then 
 					tree_.add_leaf(v,id)
-					-- f();f();
 				end
+				f(2);
 			end
 		end
 		loop(data,id)
-		-- stop()
+		stop()
 		local tree = tree_.get()
 		tree:set_node_state('EXPANDED',id)
 		
 	end
-	-- dlg_save_.pop{run = run,totalnums =nums}
-	run()
+	dlg_progress_.pop{run = run,totalnums =nums}
+	-- run()
 end
 
 project_open = function (id)
@@ -261,6 +263,7 @@ project_open = function (id)
 	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
 		if not project_close('Open') then return end 
+		
 	end 
 	open(data,id)
 end
@@ -286,7 +289,7 @@ local function save(id)
 			end
 			filelist[data.gid] = nil
 			newlist[data.gid] = true
-			-- f()
+			f()
 			if data.hidChanged then
 				local str;
 				if type(data.hidData) == 'function' then 
@@ -301,7 +304,7 @@ local function save(id)
 			end
 			filelist[id] = nil
 			newlist[id] = true
-			-- f()
+			f()
 		end
 		deal_save_id(curid)
 		
@@ -318,10 +321,10 @@ local function save(id)
 		end
 		loop(curid)
 		if close then close() end
-		-- stop()
+		stop()
 	end
-	run()
-	-- dlg_save_.pop{run = run,totalnums = count*2,stop_cbf = stop_cbf }
+	-- run()
+	dlg_progress_.pop{run = run,totalnums = count*2,stop_cbf = stop_cbf }
 	project_.save_project_filelist(zipfile, newlist)
 	if not table_is_empty(filelist) then 
 		local nums = 0
@@ -333,15 +336,15 @@ local function save(id)
 			local ar,close = disk_.zipfile_open(zipfile)
 			for k,v in pairs(filelist) do 
 				disk_.zipfile_remove_file(zipfile,k,ar)
-				-- f()
+				f()
 			end
 			if close then close() end
-			-- stop()
+			stop()
 		end
-		-- dlg_save_.pop{run = run,totalnums =nums}
-		run()
+		dlg_progress_.pop{run = run,totalnums =nums}
+		-- run()
 	end
-	project_.close()
+	
 	
 end
 
@@ -360,12 +363,12 @@ end
 
 function project_close(str)
 	if str and str == 'Open' then 
-		local a =  iup.Alarm('Notice','Whether to quit and save the existing project  ? ','yes','no')
+		local a =  iup.Alarm('Notice','Whether to quit and save the existed project  ? ','yes','no')
 		if a  ~= 1 then return  end 
 	end
 	project_save()
 	tree_.close_project()
-	project_.init()
+	project_.close()
 	return true
 end
 
@@ -380,6 +383,11 @@ function project_submit()
 	-- if not id then return end 
 end
 
+
+local function get_gidData(zipfile,data)
+	return data.gidData or disk_.read_zipfile(zipfile,data.gid)  or {}
+end
+
 function edit_info(readonly)
 	local tree = tree_.get()
 	local id = tree:get_tree_selected()
@@ -392,7 +400,7 @@ function edit_info(readonly)
 	end
 	if not gid then return end 
 	local zipfile = project_.get_project()
-	local t =data.gidData  or  disk_.read_zipfile(zipfile,gid) or {}
+	local t =get_gidData(zipfile,data) 
 	local info = pop_dlg_info(t and t.info,readonly) 
 	if not info then return end 
 	t.info = info
@@ -426,6 +434,8 @@ function delete()
 		local data =  tree:get_node_data(id)
 		local zipfile = data.file
 		project_.delete_project(zipfile)
+		tree_.delete(id)
+		project_.init()
 		return 
 	else 
 		local data = tree:get_node_data(id)
@@ -481,10 +491,10 @@ local function init_file_data(name,file)
 	return data
 end
 
+
 local function set_folder_data(str,id)
 	local tree = tree_.get()
 	local id = id or tree_.get_id()
-	
 	local data = init_folder_data(str)
 	local newid = tree_.add_folder({name = data.name,gid = data.gid},id)
 	local t = tree:get_node_data(newid)
@@ -495,7 +505,7 @@ local function set_folder_data(str,id)
 	tree:set_node_data(t,newid)
 	
 	local t = tree:get_node_data(id)
-	t.hidData = true 
+	t.hidChanged = true 
 	t.hidData = get_folder_hid_data(id)
 	tree:set_node_data(t,id)
 	return newid
@@ -537,7 +547,7 @@ local function set_file_data(data,id)
 	tree:set_node_data(t,newid)
 	
 	local t = tree:get_node_data(id)
-	t.hidData = true 
+	t.hidChanged = true 
 	t.hidData = get_folder_hid_data(id)
 	
 	tree:set_node_data(t,id)
@@ -603,7 +613,7 @@ local function deal_import_data(data,id)
 	end
 	local t = tree:get_node_data(id)
 	t.hidChanged = true
-	-- t.hidData = loop_data(data,id)
+	loop_data(data,id)
 	t.hidData = get_folder_hid_data(id)
 	tree:set_node_data(t,id)
 end
@@ -613,7 +623,6 @@ function import_folder()
 	filedlg:popup()
 	local value = filedlg.value
 	if not value then return end 
-	print(value)
 	local t = disk_.import_folder(value,true)
 	deal_import_data(t)
 end
@@ -659,11 +668,19 @@ function rename()
 	
 	local function set_data(str)
 		tree:set_node_title(str,id)
+		local data = tree:get_node_data(id)
+		local gid =  data.gid
+		local zipfile = project_.get_project()
+		data.gidChanged = true
+		data.gidData = get_gidData(zipfile,data) 
+		data.gidData.name = str
+		tree:set_node_data(data,id)
 		
-		local t = tree:get_node_data(id)
+		local pid = tree:get_node_parent(id)
+		local t = tree:get_node_data(pid)
 		t.hidChanged = true
-		t.hidData = get_folder_hid_data(id)
-		tree:set_node_data(t,id)
+		t.hidData = get_folder_hid_data(pid)
+		tree:set_node_data(t,pid)
 	end
 
 	dlg_add_.pop{Warning = Warning,set_data = set_data,name = tree:get_node_title(id)}
@@ -691,7 +708,7 @@ function link_to_file()
 	data.gidChanged = true
 	local name = tree:get_node_title()
 	local zipfile = project_.get_project()
-	data.gidData = data.gidData or disk_.read_zipfile(zipfile,data.gid)  or init_file_data(name,data.file) or {}
+	data.gidData = get_gidData(zipfile,data) 
 	data.gidData.file = data.file
 	tree:set_node_data(data)
 end
@@ -742,18 +759,18 @@ end
 
 
 local function deal_import_template(data,id)
-	local curid = id 
-	for k,v in ipairs(data) do 
-		local t = v.attributes 
-		if t then 
-			if #v ~= 0  then 
-				curid = add_folder{name = t.name,state = k ~= 1 and true,id = id,opened = true,data = t}
-				deal_import_template(v[1],curid)
-			else
-				add_file{name= t.name,file = t.file,state = k ~= 1 and true,id = id,data = t}
-			end
-		end
-	end
+	-- local curid = id 
+	-- for k,v in ipairs(data) do 
+		-- local t = v.attributes 
+		-- if t then 
+			-- if #v ~= 0  then 
+				-- curid = add_folder{name = t.name,state = k ~= 1 and true,id = id,opened = true,data = t}
+				-- deal_import_template(v[1],curid)
+			-- else
+				-- add_file{name= t.name,file = t.file,state = k ~= 1 and true,id = id,data = t}
+			-- end
+		-- end
+	-- end
 	
 	
 	local tree = tree_.get()
@@ -804,6 +821,7 @@ local function deal_import_template(data,id)
 	tree:set_node_data(t,id)
 	
 	tree_.set_marked(id)
+	tree:set_node_state('EXPANDED',id)
 end
 
 function import_template()
@@ -814,16 +832,17 @@ function import_template()
 	local tree = tree_.get()
 	local count = tree:get_childcount()
 	if count and count ~= 0 then 
-		local alarm = iup.Alarm('Notice','The old files will be deleted in saving after importing template , whether to go on !','Yes','No')
+		local alarm = iup.Alarm('Notice','The project files will be deleted , whether to go on !','Yes','No')
 		if alarm == 1 then 
 			tree:delete_nodes('CHILDREN')
 		end
+		
 	end
 	file = string.sub(file,1,-5)
 	file = string.gsub(file,'\\','.')
 	local data = require_data_file(file)
 	if type(data) ~= 'table' or not data.structure then
-		iup.Message('Notice','It is not a tpl file !')
+		iup.Message('Notice','It is not a template file !')
 		return
 	end 
 	local data = data.structure

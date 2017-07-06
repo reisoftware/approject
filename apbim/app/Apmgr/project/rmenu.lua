@@ -102,8 +102,8 @@ local function sub_link_to_items()
 	return {
 		-- item_link_to_folder_;
 		item_link_to_file_;
-		'';
-		item_link_to_model_;
+		-- '';
+		-- item_link_to_model_;
 		-- item_link_to_view_;
 		-- '';
 		-- item_link_to_exe_;
@@ -213,7 +213,7 @@ local function init_project_menu()
 			item_edit_project_;
 			item_delete_project_;
 			'';
-			item_show_style_;
+			-- item_show_style_;
 			item_properties_;
 			'';
 			item_save_project_;

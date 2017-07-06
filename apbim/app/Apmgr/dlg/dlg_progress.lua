@@ -28,7 +28,7 @@ local language_package_ = {
 	default_ = 'Chinese';
 	support_ = {English = 'English',Chinese = 'Chinese'};
 	cancel = {English = 'Close',Chinese = '终止'};
-	dlg = {English = 'Saving',Chinese = '保存'};
+	dlg = {English = 'Progress',Chinese = '进度'};
 	checking =  {English = 'Checking ... ',Chinese = '检查 ... '};
 	saving =  {English = 'Saving ... ',Chinese = '保存 ... '};
 }
@@ -166,8 +166,8 @@ local function init_guage(max)
 	gauge_.min = 0
 end
 
-local function guage_up()
-	local val = tonumber(gauge_.value) +1
+local function guage_up(num)
+	local val = tonumber(gauge_.value) + (num or 1)
 	gauge_.value =val
 end
 
@@ -186,20 +186,13 @@ function pop(arg)
 	end
 	local function stop()
 		dlg_:hide()
+		iup.ExitLoop()
 	end
 
 	init()
-	dlg_:popup()
+	dlg_:show()
 	arg.run(guage_up,stop)
+	iup.MainLoop()
+	
 end
 
-
--- local function run()
-	-- for i =1,1000 do 
-		-- for b = 1,1000 do 
-			-- print()
-		-- end
-		-- guage_up()
-	-- end
--- end
--- pop{run = run,totalnums =1000}

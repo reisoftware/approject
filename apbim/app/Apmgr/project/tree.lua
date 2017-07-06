@@ -165,6 +165,7 @@ end
 
 function get_index_id(file)
 	local count = tree_:get_childcount(0)
+	if count == 0 then return  end 
 	local posid = 1
 	for i = 1,count do 
 		local data = tree_:get_node_data(posid)
@@ -310,11 +311,8 @@ function close_project(id)
 	if not id then return end 
 	local data = tree_:get_node_data(id)
 	if not data then return end 
-	data.opened = nil
-	tree_:set_node_data(data,id)
 	tree_:delete_nodes('CHILDREN',id)
 	tree_:set_node_state('COLLAPSED',id)
-	print('tree close_project')
 end
 
 function delete(id)
