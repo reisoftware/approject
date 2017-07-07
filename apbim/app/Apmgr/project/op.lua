@@ -1156,7 +1156,7 @@ function import_db()
 	if not val then return end 
 	local name = string.match(val,'.+\\([^\\]+)')
 	local dat = init_file_data(name,val)
-	local id = tree_.add_folder(dat)
+	local id = tree_.add_file(dat)
 	local tree = tree_.get()
 	local zipfile = project_.get_project()
 	local data = tree:get_node_data(id)
