@@ -24,6 +24,7 @@ require "iupluaimglib"
 
 local list_save_file_ = 'app/Apmgr/SaveFiles/save_dlg_info.lua'
 local language_ = require 'sys.language'
+-- local sys_read
 
 local language_package_ = {
 	default_ = 'Chinese';
@@ -64,7 +65,7 @@ local function init_dlg(arg)
 	 btn_edit_ = iup.button{title = 'Edit',rastersize = btn_wid};
 	local lab_wid = '70x'
 	 lab_key_ = iup.label{title = ' Key : ',}
-	 txt_key_ = iup.list{expand = 'HORIZONTAL'}
+	 txt_key_ = iup.list{expand = 'HORIZONTAL',editbox = 'yes',dropdown = 'yes'}
 	 lab_val_ = iup.label{title = ' Value : '}
 	 txt_val_ = iup.text{expand = 'HORIZONTAL',}
 

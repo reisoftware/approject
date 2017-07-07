@@ -492,7 +492,7 @@ function delete()
 		local zipfile = data.file
 		project_.delete_project(zipfile)
 		tree_.delete(id)
-		project_.init()
+		-- project_.init()
 		return 
 	else 
 		local data = tree:get_node_data(id)
@@ -1103,9 +1103,8 @@ local function recovery_tree(data)
 	dlg_progress_.pop{run = run ,totalnums =data.nums}
 end
 
-function show_style()
+function show_style(str)
 	-- dlg_style_.pop()
-	
 	local style  = project_.get_project_style()
 	if not style then 
 		local data = change_style()
@@ -1227,4 +1226,12 @@ function insert_folder()
 	end
 
 	dlg_add_.pop{Warning = Warning,set_data = set_data}
+end
+
+
+
+function pack()
+	local dir =project_.get_project_path()
+	dir = string.sub(dir,1,-2)
+	os_execute_('explorer ' .. dir)
 end

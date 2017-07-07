@@ -39,7 +39,11 @@ local title_delete_ = {English = 'Delete',Chinese = '删除'}
 local title_delete_project_ = {English = 'Delete Project',Chinese = '删除工程'}
 local title_edit_ = {English = 'Edit',Chinese = '编辑'}
 local title_edit_project_ = {English = 'Edit Information',Chinese = '编辑信息'}
-local title_show_style_ = {English = 'Project Show Style',Chinese = '工程显示样式'}
+
+local title_show_style_ = {English = 'File Show Style',Chinese = '文件显示样式'}
+local title_show_style_bim_ = {English = 'BIM',Chinese = 'BIM'}
+local title_show_style_folder_ = {English = 'Folder',Chinese = '文件夹'}
+
 local title_import_ = {English = 'Import',Chinese= '导入'}
 local title_create_ = {English = 'Create',Chinese = '创建'}
 local title_rename_ = {English = 'Rename',Chinese = '重命名'}
@@ -71,6 +75,8 @@ local item_close_project_ = {}
 local item_delete_project_ = {}
 local item_edit_project_ = {}
 local item_show_style_ = {}
+local item_show_style_folder_ = {}
+local item_show_style_bim_ ={}
 local item_import_ = {};
 local item_import_file_ = {};
 local item_import_folder_ = {};
@@ -164,6 +170,13 @@ local function sub_link_to_items()
 	
 end
 item_link_to_ = {submenu = sub_link_to_items}
+local function sub_show_style_items()
+	return {
+		item_show_style_bim_;
+		item_show_style_folder_;
+	}
+end
+item_show_style_ = {submenu = sub_show_style_items}
 
 --------------------------------------------------------------------------------------------------------
 --api
@@ -214,6 +227,10 @@ local function init_title()
 	
 	item_link_to_db_.title = title_link_db_[cur_language_]
 	item_auto_link_.title = title_auto_link_[cur_language_]
+	
+	item_show_style_bim_.title = title_show_style_bim_[cur_language_]
+	item_show_style_folder_.title = title_show_style_folder_[cur_language_]
+
 end
 
 local function init_active(state)
@@ -417,6 +434,9 @@ item_import_db_.action = function() op_.import_db() end;
 
 item_insert_file_.action = function() op_.insert_file() end;
 item_insert_folder_.action = function() op_.insert_folder() end;
+item_pack_.action = function() op_.pack() end;
+item_show_style_bim_.action = function() op_.show_style('bim') end;
+item_show_style_folder_.action = function() op_.show_style('folder') end;
 -- item_link_to_folder_;
 -- item_link_to_file_;
 -- item_link_to_model_;
