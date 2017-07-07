@@ -41,15 +41,16 @@ local title_edit_ = {English = 'Edit',Chinese = '编辑'}
 local title_edit_project_ = {English = 'Edit Information',Chinese = '编辑信息'}
 
 local title_show_style_ = {English = 'File Show Style',Chinese = '文件显示样式'}
-local title_show_style_bim_ = {English = 'BIM',Chinese = 'BIM'}
-local title_show_style_folder_ = {English = 'Folder',Chinese = '文件夹'}
+local title_show_style_bim_ = {English = 'By Number',Chinese = '按编号'}
+local title_show_style_folder_ = {English = 'By Folder',Chinese = '按文件夹'}
+local title_show_links_ = {English = 'Show Links',Chinese = '显示链接'}
 
 local title_import_ = {English = 'Import',Chinese= '导入'}
 local title_create_ = {English = 'Create',Chinese = '创建'}
 local title_rename_ = {English = 'Rename',Chinese = '重命名'}
 local title_link_to_ = {English = 'Link To ',Chinese = '链接到'} 
 local title_link_to_exe_ = {English = 'Installable Program',Chinese = '可安装程序'}
-local title_model_ = {English = 'Selected Model',Chinese = '选中的模型'}
+local title_model_ = {English = 'Selected Model',Chinese = '选中模型'}
 local title_view_ = {English = 'Current View',Chinese = '当前视图'}
 local title_submit_ = {English = 'Submit',Chinese = '提交'}
 local title_load_ = {English = 'Load Project',Chinese = '加载工程'}
@@ -111,6 +112,7 @@ local item_insert_folder_ = {}
 local item_insert_file_ = {}
 local item_link_to_db_ = {}
 local item_auto_link_ = {}
+local item_show_links_ = {};
 
 local function sub_insert_items()
 	return {
@@ -151,7 +153,7 @@ local function sub_link_to_items()
 			'';
 			item_link_to_db_;
 			'';
-			item_auto_link_;
+			item_show_links_;
 		}
 	else 
 		return {
@@ -163,6 +165,8 @@ local function sub_link_to_items()
 			item_link_to_db_;
 			'';
 			item_auto_link_;
+			'';
+			item_show_links_;
 			-- '';
 			-- item_link_to_exe_;
 		}
@@ -171,6 +175,7 @@ local function sub_link_to_items()
 end
 item_link_to_ = {submenu = sub_link_to_items}
 local function sub_show_style_items()
+	
 	return {
 		item_show_style_bim_;
 		item_show_style_folder_;
@@ -230,6 +235,7 @@ local function init_title()
 	
 	item_show_style_bim_.title = title_show_style_bim_[cur_language_]
 	item_show_style_folder_.title = title_show_style_folder_[cur_language_]
+	item_show_links_.title = title_show_links_[cur_language_]
 
 end
 
@@ -300,6 +306,8 @@ local function init_project_menu()
 			return {
 				item_show_style_;
 				'';
+				item_pack_;
+				'';
 				item_project_properties_;
 			}
 		end
@@ -351,11 +359,12 @@ function get_folder()
 		-- item_insert_;
 		item_import_;
 		'';
-		item_rename_;
-		item_bim_number_;
-		'';
+	
 		item_edit_;
 		item_delete_;
+		item_rename_;
+		'';
+		item_bim_number_;
 		'';
 		item_link_to_;
 		'';
@@ -378,11 +387,11 @@ function get_file()
 		item_open_;
 		-- item_insert_;
 		'';
-		item_rename_;
-		item_bim_number_;
-		'';
 		item_edit_;
 		item_delete_;
+		item_rename_;
+		'';
+		item_bim_number_;
 		'';
 		item_link_to_;
 		'';

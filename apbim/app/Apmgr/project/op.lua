@@ -100,7 +100,7 @@ local function get_tpl_data()
 			end
 		end
 	)
-	table.insert(data,1,{name = '空项目（NULL）',information = '空的项目'})
+	table.insert(data,1,{name = '空项目',information = '空的项目'})
 	return data
 end
 
@@ -1106,10 +1106,10 @@ end
 function show_style(str)
 	-- dlg_style_.pop()
 	local style  = project_.get_project_style()
-	if not style then 
+	if not style and str == 'bim' then 
 		local data = change_style()
 		project_.set_project_style(data)
-	else 
+	elseif style and str == 'folder' then 
 		recovery_tree(style)
 		project_.set_project_style()
 	end
