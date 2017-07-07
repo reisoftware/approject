@@ -3,6 +3,7 @@ local require = require
 local io_open_ =  io.open
 local print = print
 local type = type
+local pairs = pairs
 
 local M = {}
 local modname = ...
@@ -19,6 +20,8 @@ local language_list_ = {
 	['English'] = 'English';
 	['ÖÐÎÄ¼òÌå'] = 'Chinese';
 }
+
+local reg_changes_ = {}
 
 local function save(file,t)
 	code_.save{file=file;src=t}
@@ -49,21 +52,40 @@ local function get_language_list_file_data()
 	return  get_data(file,require_file)
 end
 
-function set(language)
-	save(language_file_,{language = language})
-	require 'sys.menu'.reload()
-	require 'sys.toolbar'.reload()
-end
-
 function get()
 	local language = get_language() 
 	return language_list_[language]
 end
+
+local function reload_reg()
+	local lan = get() or 'English'
+	for k,f in pairs(reg_changes_) do 
+		if type(f) == 'function' then 
+			f(lan)
+		end
+	end
+end
+
+function set(language)
+	save(language_file_,{language = language})
+	require 'sys.menu'.reload()
+	require 'sys.toolbar'.reload()
+	reload_reg()
+end
+
+
 
 function get_language_list()
 	return language_list_
 end
 
 function init()
+	reg_changes_ = {}
 	-- get_language_list()
+end
+
+function reg_language_change(hw,f)
+	if not reg_changes_[hw] then 
+		reg_changes_[hw] = f
+	end
 end

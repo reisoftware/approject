@@ -74,7 +74,7 @@ local dlg_ = iup.dialog{
 	title = 'Attributes';
 	resize = 'no';
 };
-iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
+-- iup.SetAttribute(dlg_,"NATIVEPARENT",frm_hwnd)
 
 local function init_title()
 	lan =  language_.get()

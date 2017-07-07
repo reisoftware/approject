@@ -51,3 +51,9 @@ function set_cur_page(keyIndex)
 	dlg_.set_cur_page(keyIndex)
 end
 
+function update_name(old,new)
+	if old and new then 
+		return dlg_.update_name(old,new)
+	end 
+end
+

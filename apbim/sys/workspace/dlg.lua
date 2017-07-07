@@ -153,5 +153,16 @@ function update(t)
 	dlg_:show()
 end
 
+function update_name(old,new)
+	local num = tonumber(tabs_.COUNT)
+	for i = 1,num do
+		local title = tabs_["TABTITLE" .. (i-1)]
+		if title == old then 
+			 tabs_["TABTITLE" .. (i-1)] = new
+			return true 
+		end
+	end
+end
+
 
 

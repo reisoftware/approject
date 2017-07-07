@@ -46,7 +46,30 @@ local group_ = require "sys.Group"
 local app_model_function_ = require 'app.Model.function'
 local app_project_function_ = require 'app.Project.function'
 
+local language_ = require 'sys.language'
+local iup = require 'iuplua'
 
+
+local language_package_ = {
+	support_ = {English = 'English',Chinese = 'Chinese'};
+	Warning = {English = 'Warning',Chinese = '警告'};
+	name_exist =  {English = 'The name already exist , Please reset it !',Chinese = '名字已经存在，请重命名'};
+	not_template =  {English = 'The file data format is incorrect , operation is end !',Chinese = '文件数据格式不正确，操作退出 ！'};
+	sel_obj =  {English = 'Please selected objects firstly !',Chinese = '请先选择好要关联的构件对象！'};
+	no_view =  {English = 'View does not  exist !',Chinese = '当前视图不存在！'};
+	delete = {English = 'Do you want to delete the document(s) ?',Chinese = '你想要删除这个（些）文档？'};
+	yes = {English = 'Yes',Chinese = '是'};
+	no = {English = 'No',Chinese = '否'};
+	import_tpl_file ={
+		English = 'Import templates will remove existing documents from the project. Do you want to continue ?',
+		Chinese = '导入模板会将工程中现有的文档删除，是否继续？'
+	};
+}
+function get_language_package(str)
+	local lan = language_.get()
+	lan = lan and language_package_.support_[lan] or 'English'
+	return language_package_[str] and language_package_[str][lan]
+end
 
 local function table_is_empty(t)
 	return g_next_(t) == nil
@@ -77,7 +100,7 @@ local function get_tpl_data()
 			end
 		end
 	)
-	table.insert(data,1,{name = 'Null'})
+	table.insert(data,1,{name = '空项目（NULL）',information = '空的项目'})
 	return data
 end
 
@@ -106,7 +129,7 @@ local function get_project_data()
 	dlg_create_project_.pop{on_next = on_next,data = get_tpl_data()}
 	if type(project_info) ~= 'table' then return end 
 	project_info.data = project_info.data or {}
-	local attributes,tpldata = project_info.data.attributes,project_info.data.structure
+	local attributes,tpldata = project_info.data.attributes,project_info.data.structure or {}
 	if project_info.pop then 
 		attributes = pop_dlg_info(attributes) or attributes
 	end
@@ -138,36 +161,35 @@ local function project_turn_zipdata(arg)
 	local gidData = version_.get_gid_data{gid = gid,name = arg.name,info =  arg.info}
 	table.insert(saveData,{id =gid,str  = disk_.serialize_to_str(gidData) })
 	filelist[gid] = true
-	local data =arg.tpl 
-	if type(data) == 'table' and not table_is_empty(data) then
-		local function loop_data(data,id)
-			local folderIndexData =  {}
-			for k,v in ipairs(data) do 
-				local attr = type(v) == 'table' and v.attributes
-				if  type(attr) == 'table' then 
-					local gid = luaext_.guid() 
-					if #v  ~= 0  then 
-						gid = gid .. '0'
-						loop_data(v[1],gid)
-					else 
-						gid = gid .. '1'
-						if attr.disklink then 
-							local tempid = project_.get_hid_filename(gid)
-							table.insert(saveData,{str = disk_.read_file(attr.disklink,'string'),id =  tempid})
-							filelist[tempid] = true
-						end
+	local data =type(arg.tpl) == 'table' and arg.tpl or {}
+	local function loop_data(data,id)
+		local folderIndexData =  {}
+		for k,v in ipairs(data) do 
+			local attr = type(v) == 'table' and v.attributes
+			if  type(attr) == 'table' then 
+				local gid = luaext_.guid() 
+				if #v  ~= 0  then 
+					gid = gid .. '0'
+					loop_data(v[1],gid)
+				else 
+					gid = gid .. '1'
+					if attr.disklink then 
+						local tempid = project_.get_hid_filename(gid)
+						table.insert(saveData,{str = disk_.read_file(attr.disklink,'string'),id =  tempid})
+						filelist[tempid] = true
 					end
-					table.insert(saveData,{str =disk_.serialize_to_str( version_.get_gid_data{gid = gid,name = attr.name,info =  attr.info,versions = {}} ) ,id =  gid})
-					filelist[gid] = true
-					table.insert(folderIndexData,version_.get_folder_data{name = attr.name,gid = gid})
 				end
+				table.insert(saveData,{str =disk_.serialize_to_str( version_.get_gid_data{gid = gid,name = attr.name,info =  attr.info,versions = {}} ) ,id =  gid})
+				filelist[gid] = true
+				table.insert(folderIndexData,version_.get_folder_data{name = attr.name,gid = gid})
 			end
-			local tempid = project_.get_hid_filename(id)
-			table.insert(saveData,{str =disk_.serialize_to_str( folderIndexData ),id =  tempid })
-			filelist[tempid] = true
 		end
-		loop_data(data,gid)
+		local tempid = project_.get_hid_filename(id)
+		table.insert(saveData,{str =disk_.serialize_to_str( folderIndexData ),id =  tempid })
+		filelist[tempid] = true
 	end
+	loop_data(data,gid)
+
 	return saveData,filelist
 end
 
@@ -231,7 +253,7 @@ local function open(data,id)
 	local gid = project_.get_project_gid()
 	local hid = project_.get_hid_filename(gid)
 	local zipfile = project_.get_project()
-	local data = disk_.read_zipfile(zipfile,hid)
+	local data = disk_.read_zipfile(zipfile,hid) or {}
 	
 	local tempt = tree:get_node_data(id)
 	tempt.gid = gid
@@ -276,17 +298,18 @@ project_open = function (id)
 	local data = tree:get_node_data(id)
 	local pro = project_.get_project()
 	if  pro and  data.file ~= pro then
-		local a =  iup.Alarm('Notice','Whether to save the existed project  ? ','Save','No','Cancel')
-		if a  == 1 then
-			project_close('save')
-		elseif a == 2 then 
-			project_close('no')
-		else 
-			return 
-		end 
+		-- local a =  iup.Alarm('Warning','Whether to save the existed project  ? ','Yes','No','Cancel')
+		-- if a  == 1 then
+			-- project_close('save')
+		-- elseif a == 2 then 
+			-- project_close('no')
+		-- else 
+			-- return 
+		-- end 
+		project_close('save')
 	end 
 	open(data,id)
-	-- open_model()
+	open_model()
 end
 
 
@@ -301,7 +324,6 @@ local function save(id)
 	local function run(f,stop)
 		local curid = id
 		local ar,close = disk_.zipfile_open(zipfile)
-		
 		local function deal_save_id(curid)
 			local data = tree:get_node_data(curid)
 			-- require 'sys.table'.totrace(data,curid)
@@ -379,21 +401,22 @@ end
 local function save_model()
 	-- local name ,path= project_.get_project(),project_.get_project_path()
 	-- app_project_function_.Save{name = name,path = path}
-	require"sys.mgr".save();
+	mgr_.save();
 end
 
 project_save = function ()
 	local id = get_project_id()
 	if not id then return end 
 	save(id)
-	-- save_model()
+	save_model()
 end
 
 local function need_to_save()
-	local a =  iup.Alarm('Notice','Whether to save project  ? ','Save','No')
-	if a  == 1 then
-		return 'save'
-	end 
+	-- local a =  iup.Alarm('Warning','Whether to save project  ? ','Yes','No')
+	-- if a  == 1 then
+		-- return 'save'
+	-- end 
+	return 'save'
 end
 
 function project_close(str)
@@ -407,7 +430,7 @@ function project_close(str)
 end
 
 function quit()
-	project_close()
+	project_close('save')
 	os_exit_()
 end
 
@@ -456,7 +479,13 @@ end
 function delete()
 	local tree = tree_.get()
 	local id = tree:get_tree_selected()
-	local alarm = iup.Alarm('Notice','Whether to delete it !','Yes','No')
+	iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
+	local alarm = iup.Alarm(
+		get_language_package('Warning'),
+		get_language_package('delete'),
+		get_language_package('yes'),
+		get_language_package('no')
+	)
 	if alarm ~= 1 then return end 
 	if tree:get_node_depth(id) == 1 then 
 		local data =  tree:get_node_data(id)
@@ -543,7 +572,7 @@ function create_folder()
 	local data = tree:get_child_titles(id)
 	local function Warning(str)
 		if data[str] then 
-			iup.Message('Notice','The name already exist ! Please reset it !')
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
 			return true
 		end
 	end
@@ -585,7 +614,7 @@ function create_file()
 	local data = tree:get_child_titles(id)
 	local function Warning(str)
 		if data[str] then 
-			iup.Message('Notice','The name already exist ! Please reset it !')
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
 			return true
 		end
 	end
@@ -687,7 +716,7 @@ function rename()
 	local data = tree:get_child_titles(id)
 	local function Warning(str)
 		if data[str] then 
-			iup.Message('Notice','The name already exist ! Please reset it !')
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
 			return true
 		end
 	end
@@ -777,6 +806,7 @@ function save_project_template()
 	
 	get_folder_data(data,id)
 	local t = {}
+	t.icon = 'app/Apmgr/res/project.bmp';
 	t.structure = data
 	if not string.find(file,'.lua') then 
 		file = file .. '.lua'
@@ -818,11 +848,8 @@ local function deal_import_template(data,id)
 					end
 					t.gidData = tab
 					t.hidChanged = true
-					t.hidData = {}
-					local hidtab = loop_data(v[1],newid)
-					if hidtab then 
-						t.hidData = hidtab
-					end
+					loop_data(v[1],newid)
+					t.hidData =  get_folder_hid_data(newid) 
 					tree:set_node_data(t,newid)
 					table.insert(folderhidtab,{name = tab.name,gid = tab.gid})
 				else 
@@ -843,9 +870,10 @@ local function deal_import_template(data,id)
 		end
 		return folderhidtab
 	end
+	loop_data(data,id)
 	local t = tree:get_node_data(id)
 	t.hidChanged = true
-	t.hidData = loop_data(data,id)
+	t.hidData = get_folder_hid_data(id) 
 	tree:set_node_data(t,id)
 	
 	tree_.set_marked(id)
@@ -853,6 +881,7 @@ local function deal_import_template(data,id)
 end
 
 function import_template()
+	
 	local filedlg = iup.filedlg{DIALOGTYPE = 'OPEN',DIRECTORY = 'app/apmgr/tpl/',EXTFILTER  = 'LUA files|*.lua|'}
 	filedlg:popup()
 	local file = filedlg.value
@@ -860,17 +889,22 @@ function import_template()
 	local tree = tree_.get()
 	local count = tree:get_childcount()
 	if count and count ~= 0 then 
-		local alarm = iup.Alarm('Notice','The project files will be deleted , whether to go on !','Yes','No')
+		local alarm =iup.Alarm(
+			get_language_package('Warning'),
+			get_language_package('import_tpl_file'),
+			get_language_package('yes'),
+			get_language_package('no')
+		)
 		if alarm == 1 then 
 			tree:delete_nodes('CHILDREN')
 		end
-		
 	end
+	
 	file = string.sub(file,1,-5)
 	file = string.gsub(file,'\\','.')
 	local data = require_data_file(file)
 	if type(data) ~= 'table' or not data.structure then
-		iup.Message('Notice','It is not a template file !')
+		iup.Message(get_language_package('Warning'),get_language_package('not_template'))
 		return
 	end 
 	local data = data.structure
@@ -889,7 +923,8 @@ end
 function link_to_model()
 	local curs = cur_.get()
 	if not curs or table_is_empty(curs) then
-		iup.Message("Notice","Please selected objects firstly !") 
+		iup.Message(get_language_package('Warning'),get_language_package('sel_obj'))
+		-- iup.Message("Warning","Please selected objects firstly !") 
 		return
 	end 
 	local zipfile = project_.get_project()
@@ -922,7 +957,7 @@ end
 function link_to_view()
 	local curs = mgr_.curs()
 	local sc = mgr_.get_cur_scene()
-	if not sc then iup.Message("Notice","No View !") return end 
+	if not sc then 	iup.Message(get_language_package('Warning'),get_language_package('no_view')) return end 
 	local tree = tree_.get()
 	local id = tree_.get_id()
 	local zipfile = project_.get_project()
@@ -961,7 +996,7 @@ function bim_number()
 	local t = get_bim_names(zipfile,tree,id) 
 	local function Warning(str)
 		if t[str] then 
-			iup.Message('Notice','The name already exist ! Please reset it !')
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
 			return true
 		end
 	end
@@ -999,7 +1034,6 @@ local function change_style()
 					loop(t[1],curid,str  .. bimName .. '_')
 				else
 					local name = str  .. bimName
-					print(name)
 					table.insert(bim_data,{name = name,data =data })
 				end 
 				table.insert(recovery_data,t)
@@ -1131,4 +1165,65 @@ function import_db()
 	data.hidData = function() return disk_.read_file(val,'string') end 
 	data.hidChanged = true
 	tree:set_node_data(data,id)
+end
+
+function insert_file()
+	local tree = tree_.get()
+	local id =tree_.get_id()
+	local data = tree:get_child_titles(id)
+	local function Warning(str)
+		if data[str] then 
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
+			return true
+		end
+	end
+	
+	local function set_data(str)
+		local data = init_file_data(str)
+		local newid = tree_.insert_leaf({name = data.name,gid = data.gid},id)
+		local t = tree:get_node_data(newid)
+		t.gidChanged = true
+		t.gidData = data
+		tree:set_node_data(t,newid)
+		
+		local id = tree:get_node_parent(id)
+		local t = tree:get_node_data(id)
+		t.hidChanged = true 
+		t.hidData = get_folder_hid_data(id)
+		tree:set_node_data(t,id)
+		return newid
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data}
+end
+
+function insert_folder()
+	local tree = tree_.get()
+	local id =tree_.get_id()
+	local data = tree:get_child_titles(id)
+	local function Warning(str)
+		if data[str] then 
+			iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
+			return true
+		end
+	end
+	
+	local function set_data(str)
+		local data = init_folder_data(str)
+		local newid = tree_.insert_branch({name = data.name,gid = data.gid},id)
+		local t = tree:get_node_data(newid)
+		t.gidChanged = true
+		t.gidData = data
+		t.hidChanged = true
+		t.hidData = {}
+		tree:set_node_data(t,newid)
+		local id = tree:get_node_parent(id)
+		local t = tree:get_node_data(id)
+		t.hidChanged = true 
+		t.hidData = get_folder_hid_data(id)
+		tree:set_node_data(t,id)
+		return newid
+	end
+
+	dlg_add_.pop{Warning = Warning,set_data = set_data}
 end

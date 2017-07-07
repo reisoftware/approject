@@ -89,7 +89,7 @@ end
 
 local function tree_root_attributes()
 	return {
-		title = 'Projects';
+		title = 'User Projects';
 		image = {
 			open ='app/Apmgr/res/user.bmp',
 			close =  'app/Apmgr/res/user.bmp'
@@ -276,6 +276,22 @@ function add_folder(arg,id)
 	return id
 end
 
+function insert_branch(arg,id)
+	local id = id or tree_:get_tree_selected()
+	tree_:insert_branch(arg.name,id)
+	id = id + 1+ tree_:get_totalchildcount(id)
+	tree_:set_node_status( tree_branch_attributes(arg),id)
+	return id
+end
+
+function insert_leaf(arg,id)
+	local id = id or tree_:get_tree_selected()
+	tree_:insert_leaf(arg.name,id)
+	id = id + 1+ tree_:get_totalchildcount(id)
+	tree_:set_node_status( tree_leaf_attributes(arg),id)
+	return id
+end
+
 function add_file(arg,id)
 	if not tree_  then return end 
 	if type(arg) ~= 'table'  then return end 
@@ -353,3 +369,4 @@ function delete(id)
 	local id = id or tree_:get_tree_selected()
 	tree_:delete_nodes('SELECTED',id)
 end
+

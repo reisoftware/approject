@@ -97,14 +97,6 @@ function zip_index(zip)
 	return zip_file_data(zip,'__index.lua')
 end
 
-function zipfile_save_index(zipfile,str)
-	save_to_zipfile(zipfile,'__index.lua',str)
-end
-
-function zipfile_open(zipfile)
-	return zip_.open(zipfile)
-end
-
 function save_to_zipfile(zipfile,id,str,ar)
 	if type(str) ~= 'string' then return end 
 	if not zipfile or not id then return end 
@@ -119,10 +111,23 @@ function save_to_zipfile(zipfile,id,str,ar)
 	end
 end
 
+function zipfile_save_index(zipfile,str)
+	save_to_zipfile(zipfile,'__index.lua',str)
+end
+
+function zipfile_open(zipfile)
+	return zip_.open(zipfile)
+end
+
+
+
 function zipfile_remove_file(zipfile,id,ar)
 	if not zipfile or not id then return end 
 	local file = 'Files/' .. id
-	local ar,close = ar or zip_.open(zipfile)
+	local ar,close = ar;
+	if not ar then 
+		ar,close =  zip_.open(zipfile)
+	end
 	if close then 
 		zip_.delete(ar,file)
 		close()

@@ -235,16 +235,16 @@ return {
 			Chinese = '项目';
 		};
 		['New'] = {
-			English = 'New';
-			Chinese = '新建';
+			English = 'New Project';
+			Chinese = '新建工程';
 		};
 		['Open'] = {
-			English = 'Open';
-			Chinese = '打开';
+			English = 'Open Project';
+			Chinese = '打开工程';
 		};
 		['Save'] = {
-			English = 'Save';
-			Chinese = '保存';
+			English = 'Save Project';
+			Chinese = '保存工程';
 		};
 		['Statistics'] = {
 			English = 'Statistics';
@@ -323,16 +323,16 @@ return {
 			Chinese = '切换背景色';
 		};
 		['Show Style'] = {
-			English = 'Show Style';
-			Chinese = '显示样式';
+			English = 'Project Show Style';
+			Chinese = '工程显示样式';
 		};
 		['Packing To Declare'] = {
 			English = 'Packing To Declare';
 			Chinese = '申报项目打包';
 		};
 		['Extended Application'] = {
-			English = 'Extended Application';
-			Chinese = '扩展功能';
+			English = 'Function plug-in';
+			Chinese = '功能插件';
 		};
 	};	
 	{
@@ -373,10 +373,10 @@ return {
 				name = "Open";
 				keyword ='AP.Apmgr.Open';
 			};
-			{
-				name = "Save";
-				keyword ='AP.Apmgr.Save';
-			};
+			-- {
+				-- name = "Save";
+				-- keyword ='AP.Apmgr.Save';
+			-- };
 			-- {
 				-- name = "Delete";
 				-- keyword ='AP.Apmgr.Delete';
