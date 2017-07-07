@@ -17,15 +17,15 @@ return {
 			{};
 		};
 		{
-			attributes= {name = '质疑';};
+			attributes= {name = '视图';};
 			{};
 		};
 		{
-			attributes= {name = '传票';};
+			attributes= {name = '运营管理';};
 			{};
 		};
 		{
-			attributes= {name = '设计图';};
+			attributes= {name = '施工方文件';};
 			{};
 		};
 	};

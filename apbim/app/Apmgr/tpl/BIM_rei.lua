@@ -9,9 +9,13 @@ return {
 	};
 	structure = {
 		{
-			attributes = {name = '模型';};
+			attributes = {name = '文件';};
 			{
 			};
+		};
+		{
+			attributes= {name = '模型';};
+			{};
 		};
 		{
 			attributes= {name = '图纸';};
