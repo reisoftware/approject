@@ -310,6 +310,8 @@ local function init_project_menu()
 	else 
 		return {
 			item_open_project_;
+			'';
+			item_delete_project_;
 		}
 	end
 end

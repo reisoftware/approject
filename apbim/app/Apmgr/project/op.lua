@@ -479,7 +479,7 @@ end
 function delete()
 	local tree = tree_.get()
 	local id = tree:get_tree_selected()
-	iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
+	-- iup.Message(get_language_package('Warning'),get_language_package('name_exist'))
 	local alarm = iup.Alarm(
 		get_language_package('Warning'),
 		get_language_package('delete'),
