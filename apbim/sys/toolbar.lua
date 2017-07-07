@@ -17,3 +17,8 @@ function update()
 	style_.update();
 end
 
+function reload()
+	style_.init()
+	style_.update()
+	
+end

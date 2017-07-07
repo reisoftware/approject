@@ -18,6 +18,8 @@ _ENV = M
 
 local project_ = require 'app.Apmgr.project.project'
 local op_ = require 'app.Apmgr.project.op'
+local res_path_ = 'app/apmgr/res/'
+local disk_ = require 'app.Apmgr.disk'
 
 local tree_;
 
@@ -36,12 +38,25 @@ function branch_open(id)
 end
 
 function db_click(id)
-	if id and id == 0 then return end 
+	
 	local kind = tree_:get_node_kind(id)
-	if kind == 'BRANCH' then 
-		-- branch_open(id)
-	elseif kind == 'LEAF' then  
-		-- op_.open_leaf()
+	if kind == 'LEAF' then 
+		local id = id or tree_:get_tree_selected()
+		local data = tree_:get_node_data(id)
+		if not data.gidData  then  
+			local zipfile = project_.get_project()
+			data.gidData = op_.get_gidData(zipfile,data) 
+			tree_:set_node_data(data,id)
+		end
+		if not data.gidData then return end 
+		if data.gidData.file then 
+			op_.open_file()
+		end
+		if data.gidData.model then 
+			op_.open_model()
+		end
+		-- if data.gidData.model then 
+		-- end
 	end
 	
 end
@@ -49,7 +64,7 @@ end
 function init()
 	tree_=  iupTree_.Class:new()
 	tree_:set_rastersize('300x') 
-	-- tree_:set_dlbtn(db_click)
+	tree_:set_dlbtn(db_click)
 	-- tree_:set_branchopen(branch_open)
 end
 
@@ -84,6 +99,7 @@ local function tree_root_attributes()
 		};
 		kind = 'branch';
 		state = 'EXPANDED';
+		recordNodeStatus = true;
 	}
 end
 
@@ -106,6 +122,7 @@ local function tree_project_attributes(arg)
 			-- close =  'app/Apmgr/res/Project.bmp'
 		-- } ;
 		kind = 'branch';
+		recordNodeStatus = true;
 		
 	}
 end
@@ -118,18 +135,35 @@ local function tree_branch_attributes(arg)
 			gid = arg.gid;
 		};
 		kind = 'branch';
+		recordNodeStatus = true;
 	}
 end
 
 local function tree_leaf_attributes(arg)
+	local image;
+	local file;
+	if arg.file or arg.gidData then 
+		file = arg.file or (arg.gidData and arg.gidData.file)
+		if file then 
+			local filetype = string.match(file,'.+%.([^%.]+)')
+			filetype = filetype and string.lower(filetype)
+			local iconfilelist = disk_.get_folder_contents(res_path_)
+			if iconfilelist[filetype .. '.bmp'] then 
+				image = res_path_ .. filetype .. '.bmp'
+			end
+		end
+	end
 	return {
 		title = arg.name;
 		data= {
 			rmenu = require 'app.Apmgr.project.rmenu'.get_file;
 			gid = arg.gid;
-			file = arg.file;
+			file = file;
+			gidData = arg.gidData;
 		};
+		image = image;
 		kind = 'leaf';
+		recordNodeStatus = true;
 	}
 end
 
@@ -285,26 +319,26 @@ function add_folder_list(data,id)
 	
 end
 
-function open_folder(id)
-	local id = id or tree_:get_tree_selected()
+-- function open_folder(id)
+	-- local id = id or tree_:get_tree_selected()
 	
-	local count = tree_:get_childcount(id)
-	local cur_id = id+ 1
-	for i = 1,count do 
-		local data = tree_:get_node_data(cur_id)
-		if data and data.gid and string.sub(data.gid,-1,-1) == '0' then 
-			local nextIndexId = project_.get_hid_filename(data.gid)
-			local t = project_.get_cache_data(nextIndexId)
-			add_folder_list(t,cur_id)
-		end
-		cur_id = cur_id + 1 + tree_:get_totalchildcount(cur_id)
-	end
-	local state = 'EXPANDED'
-	if count  == 0 then 
-		state = 'COLLAPSED'
-	end
-	tree_:set_node_state(state,id)
-end
+	-- local count = tree_:get_childcount(id)
+	-- local cur_id = id+ 1
+	-- for i = 1,count do 
+		-- local data = tree_:get_node_data(cur_id)
+		-- if data and data.gid and string.sub(data.gid,-1,-1) == '0' then 
+			-- local nextIndexId = project_.get_hid_filename(data.gid)
+			-- local t = project_.get_cache_data(nextIndexId)
+			-- add_folder_list(t,cur_id)
+		-- end
+		-- cur_id = cur_id + 1 + tree_:get_totalchildcount(cur_id)
+	-- end
+	-- local state = 'EXPANDED'
+	-- if count  == 0 then 
+		-- state = 'COLLAPSED'
+	-- end
+	-- tree_:set_node_state(state,id)
+-- end
 
 function close_project(id)
 	local id = id or get_index_id( project_.get_project())

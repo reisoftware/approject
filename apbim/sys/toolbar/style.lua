@@ -39,6 +39,9 @@ function update()
 	control_.create_toolbars(style,dat);	
 end
 
+function init()
+	control_.init_toolbar();
+end
 --[[
 需要：
 --配置用户自定义菜单的界面

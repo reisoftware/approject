@@ -11,7 +11,8 @@ local cur_language_ = require 'sys.language'
 local language_package_ = require 'app.LoginPro.language_package'
 local menu_ = require 'sys.menu'
 local dlg_login_ = require 'app.LoginPro.dlg_login'
--- local dlg_change_pwd_ = require 'app.LoginPro.dlg_login'
+local dlg_reg_ = require 'app.LoginPro.dlg_register'
+local dlg_change_pwd_ = require 'app.LoginPro.dlg_change_password'
 local language_package_;
 
 local require_data_file_ = function(file) package_loaded_[file] = nil return require(file) end
@@ -31,10 +32,11 @@ local function logout_user()
 end
 
 local function change_pwd()
-	-- dlg_change_pwd_
+	dlg_change_pwd_.pop{}
 end
 
 local function register()
+	dlg_reg_.pop{}
 end
 
 local function upload_key()
