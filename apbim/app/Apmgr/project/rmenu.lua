@@ -152,8 +152,6 @@ local function sub_link_to_items()
 			item_link_to_view_;
 			'';
 			item_link_to_db_;
-			'';
-			item_show_links_;
 		}
 	else 
 		return {
@@ -165,8 +163,6 @@ local function sub_link_to_items()
 			item_link_to_db_;
 			'';
 			item_auto_link_;
-			'';
-			item_show_links_;
 			-- '';
 			-- item_link_to_exe_;
 		}
@@ -367,6 +363,7 @@ function get_folder()
 		item_bim_number_;
 		'';
 		item_link_to_;
+		item_show_links_;
 		'';
 		item_properties_;
 	}
@@ -394,6 +391,7 @@ function get_file()
 		item_bim_number_;
 		'';
 		item_link_to_;
+		item_show_links_;
 		'';
 		item_properties_;
 	}
