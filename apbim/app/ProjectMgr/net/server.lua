@@ -38,6 +38,7 @@ function init_user_list(arg)
 end
 
 function get_user_list()
+
 	local user = user_.get()
 	local file = default_path_ .. user.gid
 	local data = require"sys.io".read_file{file=file,key = 'db'};
@@ -68,6 +69,7 @@ function upload_user_list(arg)
 	if type(arg.cbf) == 'function' then
 		arg.cbf()
 	end
+
 end
 
 --arg = {gid,name}
