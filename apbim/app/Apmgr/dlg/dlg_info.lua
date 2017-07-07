@@ -23,6 +23,7 @@ require 'iupluacontrols'
 require "iupluaimglib"
 
 local list_save_file_ = 'app/Apmgr/SaveFiles/save_dlg_info.lua'
+local list_save_data_ = {}
 local language_ = require 'sys.language'
 -- local sys_read
 
@@ -39,6 +40,7 @@ local language_package_ = {
 	Mval = {English = 'Value ',Chinese = '值'};
 	dlg = {English = 'Setting Attributes',Chinese = '设置属性'};
 	edit =  {English = 'Edit',Chinese = '编辑'};
+	-- ['Save Keys'] = {English = 'Save Keys',Chinese = '保存属性'};
 	message1 = {English = {'Notice','Please input key !'},Chinese = {'注意','请输入属性名！'}};
 	message2 = {English = {'Notice','The key has been exists !'},Chinese = {'注意','这个属性已经被定义 ！'}};
 } 
@@ -50,22 +52,24 @@ local btn_add_;
 local btn_delete_;
 local btn_edit_;
 local lab_key_;
-local txt_key_;
+local list_key_;
 local lab_val_ ;
 local txt_val_ ;
 local dlg_;
 local matrix_info_;
+-- local btn_save_keys_;
 
 local function init_dlg(arg)
 	local btn_wid = '100x';
 	 btn_cancel_ = iup.button{title = 'Cancel',rastersize = btn_wid};
 	 btn_ok_ = iup.button{title = 'Ok',rastersize = btn_wid};
+	 -- btn_save_keys_ = iup.button{title = 'Save Keys',rastersize = btn_wid};
 	 btn_add_ = iup.button{title = 'Add',rastersize = btn_wid};
 	 btn_delete_ = iup.button{title = 'Delete',rastersize = btn_wid};
 	 btn_edit_ = iup.button{title = 'Edit',rastersize = btn_wid};
 	local lab_wid = '70x'
 	 lab_key_ = iup.label{title = ' Key : ',}
-	 txt_key_ = iup.list{expand = 'HORIZONTAL',editbox = 'yes',dropdown = 'yes'}
+	 list_key_ = iup.list{expand = 'HORIZONTAL',editbox = 'yes',dropdown = 'yes'}
 	 lab_val_ = iup.label{title = ' Value : '}
 	 txt_val_ = iup.text{expand = 'HORIZONTAL',}
 
@@ -107,7 +111,7 @@ local function init_dlg(arg)
 		local frame_info_ = iup.frame{
 			iup.vbox{
 				matrix_info_;
-				iup.hbox{lab_key_,txt_key_,lab_val_,txt_val_};
+				iup.hbox{lab_key_,list_key_,lab_val_,txt_val_};
 				iup.hbox{btn_add_,btn_edit_,btn_delete_};
 				alignment = 'ARIGHT';
 				margin = '5x5';
@@ -151,7 +155,7 @@ local function init_select_matrix(lin,state)
 	matrix_info_['MARK' .. lin .. ':1'] = state 
 	matrix_info_['MARK' .. lin .. ':2'] = state 
 	if state == 1 then
-		txt_key_.value = matrix_info_:getcell(lin,1)
+		list_key_.value = matrix_info_:getcell(lin,1)
 		txt_val_.value = matrix_info_:getcell(lin,2)
 	end
 end
@@ -191,8 +195,12 @@ local function get_matrix_data()
 end
 
 local function init_text()
-	txt_key_.value = '';
+	list_key_.value = '';
 	txt_val_.value ='';
+end
+
+local function save_list_data()
+	require'sys.table'.tofile{file=list_save_file_,src=list_save_data_};
 end
 
 local function init_callback(arg)
@@ -216,8 +224,12 @@ local function init_callback(arg)
 	end
 	
 	function btn_add_:action()
-		local str = txt_key_.value
-		
+		local str = list_key_.value
+		if not list_save_data_[str] then 
+			list_save_data_[str] = true
+			list_key_.appenditem = str
+			save_list_data() 
+		end
 		if not string.find(str,'%S+') then 
 			local t = language_package_.message1[lan]
 			iup.Message( t[1],t[2] ) 
@@ -237,7 +249,7 @@ local function init_callback(arg)
 	function btn_edit_:action()
 		local lin = get_selected_lin()
 		if not lin or lin == 0 or lin > tonumber(matrix_num_) then return end 
-		matrix_edit_line{key = txt_key_.value,value = txt_val_.value,lin = lin}
+		matrix_edit_line{key = list_key_.value,value = txt_val_.value,lin = lin}
 		init_text()
 	end
 	
@@ -271,7 +283,22 @@ local function clear_matrix()
 	matrix_num_ = 0
 end
 
+local function init_list_data()
+	list_save_data_ =  require"sys.io".read_file{file=list_save_file_} or {}
+	local t = {}
+	for k, v in pairs(list_save_data_) do 
+		table.insert(t,k)
+	end
+	table.sort(t,function(a,b) return a<b end)
+	list_key_.value = '';
+	list_key_[1] = nil
+	for k,v in ipairs(t) do 
+		list_key_.appenditem = v
+	end
+end
+
 local function init_data(data)
+	init_list_data()
 	clear_matrix()
 	data = data or {}
 	local data = sort(data)
