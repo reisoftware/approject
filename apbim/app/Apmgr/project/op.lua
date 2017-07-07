@@ -1235,3 +1235,8 @@ function pack()
 	dir = string.sub(dir,1,-2)
 	os_execute_('explorer ' .. dir)
 end
+
+function flush()
+	-- local data = project_.get_project_list()
+	
+end

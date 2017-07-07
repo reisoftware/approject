@@ -67,6 +67,7 @@ local title_show_model_ =  {English = 'Show Model',Chinese = '显示模型'}
 local title_insert_ =  {English = 'Insert',Chinese = '插入'}
 local title_link_db_ =  {English = 'SQLite Table',Chinese = 'SQLite 表'}
 local title_auto_link_ = {English = 'Auto Link',Chinese = '自动链接'}
+local title_flush_ = {English = 'Flush',Chinese = '刷新'}
 
 local item_create_project_ = {}
 local item_quit_ = {}
@@ -113,6 +114,7 @@ local item_insert_file_ = {}
 local item_link_to_db_ = {}
 local item_auto_link_ = {}
 local item_show_links_ = {};
+local item_flush_ = {}
 
 local function sub_insert_items()
 	return {
@@ -155,7 +157,7 @@ local function sub_link_to_items()
 		}
 	else 
 		return {
-			item_link_to_folder_;
+			item_link_to_file_;
 			'';
 			item_link_to_model_;
 			item_link_to_view_;
@@ -232,6 +234,8 @@ local function init_title()
 	item_show_style_bim_.title = title_show_style_bim_[cur_language_]
 	item_show_style_folder_.title = title_show_style_folder_[cur_language_]
 	item_show_links_.title = title_show_links_[cur_language_]
+	
+	item_flush_.title = title_flush_[cur_language_] 
 
 end
 
@@ -282,6 +286,8 @@ function get_root()
 	init()
 	return {
 		item_create_project_;
+		'';
+		item_flush_;
 		'';
 		item_quit_;
 	}
@@ -444,6 +450,8 @@ item_insert_folder_.action = function() op_.insert_folder() end;
 item_pack_.action = function() op_.pack() end;
 item_show_style_bim_.action = function() op_.show_style('bim') end;
 item_show_style_folder_.action = function() op_.show_style('folder') end;
+item_flush_.action = function() op_.flush() end;
+
 -- item_link_to_folder_;
 -- item_link_to_file_;
 -- item_link_to_model_;
