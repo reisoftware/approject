@@ -331,7 +331,7 @@ function get_folder()
 	end 
 	return {
 		item_create_;
-		item_insert_;
+		-- item_insert_;
 		item_import_;
 		'';
 		item_rename_;
@@ -359,7 +359,7 @@ function get_file()
 	
 	return {
 		item_open_;
-		item_insert_;
+		-- item_insert_;
 		'';
 		item_rename_;
 		item_bim_number_;

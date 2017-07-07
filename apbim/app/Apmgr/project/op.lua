@@ -57,7 +57,7 @@ local language_package_ = {
 	not_template =  {English = 'The file data format is incorrect , operation is end !',Chinese = '文件数据格式不正确，操作退出 ！'};
 	sel_obj =  {English = 'Please selected objects firstly !',Chinese = '请先选择好要关联的构件对象！'};
 	no_view =  {English = 'View does not  exist !',Chinese = '当前视图不存在！'};
-	delete = {English = 'Do you want to delete the document(s) ?',Chinese = '你想要删除这个（些）文档？'};
+	delete = {English = 'Do you want to delete the document(s) ?',Chinese = '确认删除 ?'};
 	yes = {English = 'Yes',Chinese = '是'};
 	no = {English = 'No',Chinese = '否'};
 	import_tpl_file ={
@@ -498,12 +498,13 @@ function delete()
 		local data = tree:get_node_data(id)
 		gid =data and data.gid
 	end
-	tree_.delete(id)
+	
 	local pid = tree:get_node_parent(id)
 	local data =  tree:get_node_data(pid)
 	data.hidChanged = true
+	tree_.delete(id)
 	data.hidData = get_folder_hid_data(pid)
-	tree:set_node_data(data)
+	tree:set_node_data(data,pid)
 end
 
 
